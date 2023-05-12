@@ -12,12 +12,12 @@ import os
 # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/stage-service.htm
 
 # Output folder for the service definition drafts
-outdir = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Script\Output"
+outdir = r"C:\AGOLUpload\Output"
 # Path to the .aprx file that contains the layers to be exported
-aprx_path = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Script\ArcGISPro\script.aprx"
+aprx_path = r"C:\AGOLUpload\SampleProject\SampleProject.aprx"
 
 # Set output file names
-service_name = "Biomonitoring"          # Name of the feature layer to be uploaded to AGOL
+service_name = "Service Name"          # Name of the feature layer to be uploaded to AGOL
 sddraft_filename = service_name + ".sddraft"
 sddraft_output_filename = os.path.join(outdir, sddraft_filename)
 sd_filename = service_name + ".sd"
