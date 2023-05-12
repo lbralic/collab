@@ -1,3 +1,5 @@
+# v1.4 Add sharing options
+
 # Created by: Lucija Bralic, Fleming College
 # Last updated: May 2023
 # Purpose: Automate the upload of ArcGIS Pro layers to ArcGIS Online (AGOL)
@@ -54,11 +56,17 @@ print("Start Staging")
 arcpy.server.StageService(sddraft_output_filename, sd_output_filename)
 
 # Share to portal
+# Documentation: https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
+inOverride = "OVERRIDE_DEFINITION"
+# Sharing options
+inSharePublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
+inShareOrg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
+inShareGroup = ""                         # Enter the name of the group(s): in_groups or [in_groups,...]
+# AGOL folder name
+inFolderType = ""                         # Enter "Existing" to specify an existing folder, or "" to not specify an AGOL folder
+inFolderName = ""                         # Enter the existing AGOL folder name, or "" to not specify an AGOL folder
 print("Start Uploading")
 # Parameters: arcpy.server.UploadServiceDefinition(in_sd_file, in_server, {in_service_name}, {in_cluster}, {in_folder_type}, {in_folder}, {in_startupType}, {in_override}, {in_my_contents}, {in_public}, {in_organization}, {in_groups})
-# Replace "Collab" with the name of an existing ArcGIS Online folder. Otherwise, delete in_folder_type and in_folder.
-arcpy.server.UploadServiceDefinition(sd_output_filename, server_type, in_folder_type = "Existing", in_folder = "Collab")
+arcpy.server.UploadServiceDefinition(sd_output_filename, server_type, "", "", inFolderType, inFolderName, "", inOverride, "", inSharePublic, inShareOrg, inShareGroup)
 
 print("Finish Publishing")
-
-
