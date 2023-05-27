@@ -77,8 +77,8 @@ def GDBToMap():
     print(">> Adding data to map...")
     aprx = arcpy.mp.ArcGISProject(aprx_path)
     m = aprx.listMaps()[0]          # Enter the name of the map if there are multiple, ie. aprx.listMaps("MapName")[0]
-    list_layers = m.listLayers()
-    if len(list_layers) < 1:
+    list_layers = m.listLayers("PWQMN_Stations")
+    if len(list_layers) == 0:
         fcs = arcpy.ListFeatureClasses()
         for fc in fcs:
             desc_fc = arcpy.Describe(fc)
@@ -111,4 +111,74 @@ def AGOLUpload():
     service_name = "Kawartha Conservation PWQMN Data"          # Name of the feature layer to be uploaded to AGOL
     sddraft_filename = service_name + ".sddraft"
     sddraft_output_filename = os.path.join(outdir, sddraft_filename)
-    sd_filena
+    sd_filename = service_name + ".sd"
+    sd_output_filename = os.path.join(outdir, sd_filename)
+
+    # Delete existing files
+    print("Deleting existing files...")
+    if os.path.exists(sddraft_output_filename):
+        os.remove(sddraft_output_filename)
+    if os.path.exists(sd_output_filename):
+        os.remove(sd_output_filename)
+
+    # Reference layers to publish
+    aprx = arcpy.mp.ArcGISProject(aprx_path)
+    m = aprx.listMaps()[0]      # Specify the name of the map if necessary
+    lyr_list = []               # List layers and tables
+    lyrs = m.listLayers()       # List layers
+    tables = m.listTables()     # List tables
+    count_lyrs = len(lyrs)
+    for x in range(count_lyrs):
+        lyr_list.append(lyrs[x])
+    count_tables = len(tables)
+    for x in range(count_tables):
+        lyr_list.append(tables[x])
+
+    # Create FeatureSharingDraft and enable overwriting
+    server_type = "HOSTING_SERVER"
+    # Parameters: getWebLayerSharingDraft(server_type, service_type, service_name, {layers_and_tables})
+    sddraft = m.getWebLayerSharingDraft(server_type, "FEATURE", service_name, lyr_list)
+    sddraft.summary = "My Summary"
+    sddraft.tags = "My Tags"
+    sddraft.description = "My Description"
+    sddraft.credits = "My Credits"
+    sddraft.useLimitations = "My Use Limitations"
+    sddraft.overwriteExistingService = True
+
+    # Create Service Definition Draft file
+    # Parameters: exportToSDDraft(out_sddraft)
+    sddraft.exportToSDDraft(sddraft_output_filename)
+
+    # Stage Service
+    print("Start Staging")
+    # Parameters: arcpy.server.StageService(in_service_definition_draft, out_service_definition, {staging_version})
+    arcpy.server.StageService(sddraft_output_filename, sd_output_filename)
+
+    # Share to portal
+    # Documentation: https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
+    inOverride = "OVERRIDE_DEFINITION"
+    # Sharing options
+    inSharePublic = "PUBLIC"                 # Enter "PUBLIC" or "PRIVATE"
+    inShareOrg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
+    inShareGroup = "Kawartha Conservation Collaborative Project"                         # Enter the name of the group(s): in_groups or [in_groups,...]
+    # AGOL folder name
+    inFolderType = "Existing"                         # Enter "Existing" to specify an existing folder
+    inFolderName = "Collab"                         # Enter the existing AGOL folder name
+    print("Start Uploading")
+    # Parameters: arcpy.server.UploadServiceDefinition(in_sd_file, in_server, {in_service_name}, {in_cluster}, {in_folder_type}, {in_folder}, {in_startupType}, {in_override}, {in_my_contents}, {in_public}, {in_organization}, {in_groups})
+    arcpy.server.UploadServiceDefinition(sd_output_filename, server_type, "", "", inFolderType, inFolderName, "", inOverride, "", inSharePublic, inShareOrg, inShareGroup)
+
+    print("Finish Publishing")
+
+    # Delete tables from the map view
+    table_list = m.listTables()
+    for tbl in table_list:
+        m.removeTable(tbl)
+    aprx.save()
+
+if __name__ == '__main__':
+    # Global Environment settings
+    with arcpy.EnvManager(outputCoordinateSystem = coordsys, scratchWorkspace = ws, workspace = ws):
+        PWQMNModel()
+        GDBToMap()
+        AGOLUpload()
