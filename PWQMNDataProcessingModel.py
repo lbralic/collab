@@ -2,15 +2,23 @@
 # GDBToMap() >> Add all feature classes and tables to the map display
 # AGOLUpload() >> Upload all layers and tables to ArcGIS Online
 
+# Required edits
+#   Under "Required Edit 1": Enter data/workspace paths
+
+# Optional edits
+#   Under "Optional Edit 1": Enter the summary, tags, etc. that will appear on AGOL
+#   Under "Optional Edit 2": Alter the sharing preferences
+
 import arcpy, os
 
-# Path to raw PWQMN .xlsx file
+# >>> Required Edit 1: Input paths
+# Path to PWQMN Excel file
 input_PWQMN_table = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Data\2023-04-11_PWQMNdata_GISDashboard.xlsx"
-# Path to workspace
+# Path to geodatabase
 ws = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Testing\PWQMN\PWQMN_test.gdb"
 # Path to .aprx file
 aprx_path = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Testing\PWQMN\PWQMN_test.aprx"
-# Output folder for the service definition drafts
+# Empty output folder for the service definition drafts
 outdir = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Script\Output"
 
 # Coordinate system
@@ -23,8 +31,25 @@ def PWQMNModel():
     print(">> Processing the PWQMN data...")
 
     # Import the Excel file to the gdb with the name PWQMN
-    #Parameters: arcpy.conversion.ExcelToTable(Input_Excel_File, Output_Table, {Sheet}, {field_names_row}, {cell_range})
+    # Parameters: arcpy.conversion.ExcelToTable(Input_Excel_File, Output_Table, {Sheet}, {field_names_row}, {cell_range})
     arcpy.conversion.ExcelToTable(input_PWQMN_table, "PWQMN")
+
+    # Create a PWQMN_Stations feature class from the imported Excel file
+    PWQMN_raw = os.path.join(ws, "PWQMN")
+    # Select the 11 stations
+    PWQMNStation_where = "OBJECTID >= 1 AND OBJECTID <= 11"
+    PWQMNStation_Select = arcpy.management.SelectLayerByAttribute(PWQMN_raw, where_clause = PWQMNStation_where)
+    # Convert the table to a point feature class
+    arcpy.management.XYTableToPoint(PWQMNStation_Select, "PWQMN_Stations", "East", "North", "", coordsys)
+    # Only keep the fields that contain the basic station information
+    PWQMN_Stations = os.path.join(ws, "PWQMN_Stations")
+    field_list = arcpy.ListFields(PWQMN_Stations)
+    field_list_delete = []
+    for field in field_list:
+        if field.baseName != "OBJECTID" and field.baseName != "Shape" and field.baseName != "Station__" and field.baseName != "BOW_SITE_DESC" and field.baseName != "SAMPLE_PT_DESC_1":
+            field_list_delete.append(field.baseName)
+    print(field_list_delete)
+    arcpy.management.DeleteField(PWQMN_Stations, drop_field=field_list_delete)
 
     # Create a TEST_CODE domain
     desc_ws = arcpy.Describe(ws)
@@ -43,7 +68,6 @@ def PWQMNModel():
         arcpy.management.AddCodedValueToDomain(ws, domainname, code="FWTEMP", code_description="Temperature")[0]
         arcpy.management.AddCodedValueToDomain(ws, domainname, code="CONDAM", code_description="Conductivity")[0]
 
-    PWQMN_raw = os.path.join(ws, "PWQMN")
     # Assign Domain To Field
     arcpy.management.AssignDomainToField(PWQMN_raw, field_name="TEST_CODE", domain_name="TESTCODE_domain")[0]
 
@@ -77,18 +101,16 @@ def GDBToMap():
     print(">> Adding data to map...")
     aprx = arcpy.mp.ArcGISProject(aprx_path)
     m = aprx.listMaps()[0]          # Enter the name of the map if there are multiple, ie. aprx.listMaps("MapName")[0]
-    list_layers = m.listLayers("PWQMN_Stations")
-    if len(list_layers) == 0:
-        fcs = arcpy.ListFeatureClasses()
-        for fc in fcs:
-            desc_fc = arcpy.Describe(fc)
-            fc_name = desc_fc.baseName
-            arcpy.management.MakeFeatureLayer(fc, fc_name)
-            lyr_name = "{}.lyrx".format(fc_name)
-            arcpy.management.SaveToLayerFile(fc_name, lyr_name)
-            lyr_path = os.path.join(os.path.dirname(ws), lyr_name)
-            lyr = arcpy.mp.LayerFile(lyr_path)
-            m.addLayer(lyr)
+    fcs = arcpy.ListFeatureClasses()
+    for fc in fcs:
+        desc_fc = arcpy.Describe(fc)
+        fc_name = desc_fc.baseName
+        arcpy.management.MakeFeatureLayer(fc, fc_name)
+        lyr_name = "{}.lyrx".format(fc_name)
+        arcpy.management.SaveToLayerFile(fc_name, lyr_name)
+        lyr_path = os.path.join(os.path.dirname(ws), lyr_name)
+        lyr = arcpy.mp.LayerFile(lyr_path)
+        m.addLayer(lyr)
     tables = arcpy.ListTables()
     for table in tables:
         desc_table = arcpy.Describe(table)
@@ -108,7 +130,7 @@ def AGOLUpload():
     # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/stage-service.htm
 
     # Set output file names
-    service_name = "Kawartha Conservation PWQMN Data"          # Name of the feature layer to be uploaded to AGOL
+    service_name = "Kawartha Conservation PWQMN Data test"          # Name of the feature layer to be uploaded to AGOL
     sddraft_filename = service_name + ".sddraft"
     sddraft_output_filename = os.path.join(outdir, sddraft_filename)
     sd_filename = service_name + ".sd"
@@ -135,6 +157,7 @@ def AGOLUpload():
         lyr_list.append(tables[x])
 
     # Create FeatureSharingDraft and enable overwriting
+    # >>> Optional Edit 1: Enter the summary, tags, etc. that will appear on AGOL
     server_type = "HOSTING_SERVER"
     # Parameters: getWebLayerSharingDraft(server_type, service_type, service_name, {layers_and_tables})
     sddraft = m.getWebLayerSharingDraft(server_type, "FEATURE", service_name, lyr_list)
@@ -155,12 +178,13 @@ def AGOLUpload():
     arcpy.server.StageService(sddraft_output_filename, sd_output_filename)
 
     # Share to portal
+    # >>> Optional Edit 2: Alter sharing preferences
     # Documentation: https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
     inOverride = "OVERRIDE_DEFINITION"
     # Sharing options
-    inSharePublic = "PUBLIC"                 # Enter "PUBLIC" or "PRIVATE"
+    inSharePublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
     inShareOrg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
-    inShareGroup = "Kawartha Conservation Collaborative Project"                         # Enter the name of the group(s): in_groups or [in_groups,...]
+    inShareGroup = ""                         # Enter the name of the group(s): in_groups or [in_groups,...]
     # AGOL folder name
     inFolderType = "Existing"                         # Enter "Existing" to specify an existing folder
     inFolderName = "Collab"                         # Enter the existing AGOL folder name
@@ -170,10 +194,13 @@ def AGOLUpload():
 
     print("Finish Publishing")
 
-    # Delete tables from the map view
+    # Delete tables and layers from the map view
     table_list = m.listTables()
     for tbl in table_list:
         m.removeTable(tbl)
+    fc_list = m.listLayers()
+    for fc in fc_list:
+        m.removeLayer(fc)
     aprx.save()
 
 if __name__ == '__main__':
