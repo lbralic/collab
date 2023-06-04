@@ -51,7 +51,6 @@ def BioModel():
     for field in field_list:
         if field.baseName != "OBJECTID" and field.baseName != "Shape" and field.baseName != "Watercourse" and field.baseName != "Site_Code" and field.baseName != "Site_Type":
             field_list_delete.append(field.baseName)
-    print(field_list_delete)
     arcpy.management.DeleteField(BM_Stations, drop_field=field_list_delete)
 
     # Domains:
