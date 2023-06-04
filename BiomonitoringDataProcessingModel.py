@@ -5,13 +5,13 @@
 import arcpy, os, pandas as pd
 
 # Path to raw Biomonitoring .xlsx file
-input_BM_table = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Data\Biomonitoring Data for Dashboard)-June2,2023.xlsx"
+input_BM_table = r"C:\Biomonitoring Data for Dashboard)-June2,2023.xlsx"
 # Path to geodatabase
-ws = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Testing\Biomonitoring\Biomonitoring.gdb"
+ws = r"C:\Biomonitoring\Biomonitoring.gdb"
 # Path to .aprx file
-aprx_path = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Testing\Biomonitoring\Biomonitoring.aprx"
+aprx_path = r"C:\Biomonitoring.aprx"
 # Empty output folder for the service definition drafts
-outdir = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Testing\Output"
+outdir = r"C:\Output"
 
 # Coordinate system
 coordsys = "PROJCS[\"NAD_1983_CSRS_UTM_Zone_17N\",GEOGCS[\"GCS_North_American_1983_CSRS\",DATUM[\"D_North_American_1983_CSRS\",SPHEROID[\"GRS_1980\",6378137.0,298.257222101]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"False_Easting\",500000.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",-81.0],PARAMETER[\"Scale_Factor\",0.9996],PARAMETER[\"Latitude_Of_Origin\",0.0],UNIT[\"Meter\",1.0]]"
