@@ -158,7 +158,7 @@ def GDBToMap():
         name_table = desc_table.baseName
 
         # Only add PWQMN_Data to the map view
-        if name_table == "Biomonotoring":
+        if name_table == "Biomonitoring":
             table_path = os.path.join(ws, table)
             addTab = arcpy.mp.Table(table_path)
             m.addTable(addTab)
