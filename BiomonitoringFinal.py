@@ -34,14 +34,16 @@ csvfilepath = os.path.join(workspace+'/' + csvfile)
 def BioModel():
     print(">> Processing the Biomonitoring data...")
 
+
     # Reading an excel file
     excelFile = pd.read_excel (inputExcelFile, sheet_name="Biomonitoring")
+
 
     # Converting excel file into CSV file
     excelFile.to_csv (csvfilepath, index = None, header=True)
 
     # Reading and Converting the output csv file into a dataframe object
-    df = pd.DataFrame(pd.read_csv(csvfile))
+    df = pd.DataFrame(pd.read_csv(csvfilepath))
 
     # Displaying the dataframe object
     df.columns=df.columns.str.replace(' ', '_') # replace space with underscore
@@ -49,7 +51,7 @@ def BioModel():
     df.to_csv(csvfilepath, encoding='utf-8-sig')
 
     # copy the csv file to geodatabase
-    arcpy.conversion.ExportTable(csvfile, ws + "/" + csvname)
+    arcpy.conversion.ExportTable(csvfilepath, ws + "/" + csvname)
     # convert the csv table into point feature class
     arcpy.management.XYTableToPoint(csvfilepath, csvname, "Easting", "Northing", "", coordsys)
 
@@ -254,3 +256,4 @@ if __name__ == '__main__':
         BioModel()
         GDBToMap()
         AGOLUpload()
+
