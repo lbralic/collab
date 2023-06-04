@@ -6,18 +6,19 @@ arcpy.env.overwriteOutput = True
 # Path to geodatabase
 workspace = arcpy.env.workspace = r"C:\gis\_collab\test" # change path here
 
-# Path to .aprx file
-aprx_path = r"C:\gis\_collab\test\test.aprx" # change path
-
-# Empty output folder for the service definition drafts
-outdir = r"C:\gis\_collab\test\Output" # change path
-
 # Create file geodatabase
 gdb = "Biomonitoring.gdb" 
 ws = workspace + '/' + gdb
 if arcpy.Exists(ws):
     arcpy.Delete_management(ws)
 arcpy.management.CreateFileGDB(workspace, gdb)
+
+# Path to .aprx file
+aprx_path = r"C:\gis\_collab\test\Biomonitoring.aprx" # change path
+
+# Empty output folder for the service definition drafts
+outdir = r"C:\gis\_collab\test\Output" # change path
+
 
 
 # Coordinate system
@@ -135,8 +136,121 @@ def BioModel():
     # Run the AddAttributeRule tool
     arcpy.management.AddAttributeRule(csvname, name4, "CONSTRAINT", script_expression4, "EDITABLE", triggering_events, error_number2, error_message2, description, subtype)
 
+# Add all feature classes and tables to the map display
+def GDBToMap():
+    print(">> Adding data to map...")
+    aprx = arcpy.mp.ArcGISProject(aprx_path)
+    m = aprx.listMaps()[0]          # Enter the name of the map if there are multiple, ie. aprx.listMaps("MapName")[0]
+    fcs = arcpy.ListFeatureClasses()
+    for fc in fcs:
+        desc_fc = arcpy.Describe(fc)
+        fc_name = desc_fc.baseName
+        arcpy.management.MakeFeatureLayer(fc, fc_name)
+        lyr_name = "{}.lyrx".format(fc_name)
+        arcpy.management.SaveToLayerFile(fc_name, lyr_name)
+        lyr_path = os.path.join(os.path.dirname(ws), lyr_name)
+        lyr = arcpy.mp.LayerFile(lyr_path)
+        m.addLayer(lyr)
+    tables = arcpy.ListTables()
+    for table in tables:
+        desc_table = arcpy.Describe(table)
+
+        name_table = desc_table.baseName
+
+        # Only add PWQMN_Data to the map view
+        if name_table == "Biomonotoring":
+            table_path = os.path.join(ws, table)
+            addTab = arcpy.mp.Table(table_path)
+            m.addTable(addTab)
+    aprx.save()
+
+# Upload all layers and tables to ArcGIS Online
+def AGOLUpload():
+    print(">> Uploading to ArcGIS Online...")
+    # Source: 
+    # https://pro.arcgis.com/en/pro-app/latest/arcpy/sharing/featuresharingdraft-class.htm
+    # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/stage-service.htm
+
+    # Set output file names
+    service_name = "Kawartha Conservation Biomonitoring Data test"          # Name of the feature layer to be uploaded to AGOL
+    sddraft_filename = service_name + ".sddraft"
+    sddraft_output_filename = os.path.join(outdir, sddraft_filename)
+    sd_filename = service_name + ".sd"
+    sd_output_filename = os.path.join(outdir, sd_filename)
+
+    # Delete existing files
+    print("Deleting existing files...")
+    if os.path.exists(sddraft_output_filename):
+        os.remove(sddraft_output_filename)
+    if os.path.exists(sd_output_filename):
+        os.remove(sd_output_filename)
+
+    # Reference layers to publish
+    aprx = arcpy.mp.ArcGISProject(aprx_path)
+    m = aprx.listMaps()[0]      # Specify the name of the map if necessary
+    lyr_list = []               # List layers and tables
+    lyrs = m.listLayers()       # List layers
+    tables = m.listTables()     # List tables
+    count_lyrs = len(lyrs)
+    for x in range(count_lyrs):
+        lyr_list.append(lyrs[x])
+    count_tables = len(tables)
+    for x in range(count_tables):
+        lyr_list.append(tables[x])
+
+    # Create FeatureSharingDraft and enable overwriting
+    # >>> Optional Edit 1: Enter the summary, tags, etc. that will appear on AGOL
+    server_type = "HOSTING_SERVER"
+    # Parameters: getWebLayerSharingDraft(server_type, service_type, service_name, {layers_and_tables})
+    sddraft = m.getWebLayerSharingDraft(server_type, "FEATURE", service_name, lyr_list)
+    sddraft.summary = "My Summary"
+    sddraft.tags = "My Tags"
+    sddraft.description = "My Description"
+    sddraft.credits = "My Credits"
+    sddraft.useLimitations = "My Use Limitations"
+    sddraft.overwriteExistingService = True
+
+    # Create Service Definition Draft file
+    # Parameters: exportToSDDraft(out_sddraft)
+    sddraft.exportToSDDraft(sddraft_output_filename)
+
+    # Stage Service
+    print("Start Staging")
+    # Parameters: arcpy.server.StageService(in_service_definition_draft, out_service_definition, {staging_version})
+    arcpy.server.StageService(sddraft_output_filename, sd_output_filename)
+
+    # Share to portal
+    # >>> Optional Edit 2: Alter sharing preferences
+    # Documentation: https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
+    inOverride = "OVERRIDE_DEFINITION"
+    # Sharing options
+    inSharePublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
+    inShareOrg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
+    inShareGroup = ""                         # Enter the name of the group(s): in_groups or [in_groups,...]
+    # AGOL folder name
+    inFolderType = "Existing"                         # Enter "Existing" to specify an existing folder
+    inFolderName = "Collab"                         # Enter the existing AGOL folder name
+    print("Start Uploading")
+    # Parameters: arcpy.server.UploadServiceDefinition(in_sd_file, in_server, {in_service_name}, {in_cluster}, {in_folder_type}, {in_folder}, {in_startupType}, {in_override}, {in_my_contents}, {in_public}, {in_organization}, {in_groups})
+    arcpy.server.UploadServiceDefinition(sd_output_filename, server_type, "", "", inFolderType, inFolderName, "", inOverride, "", inSharePublic, inShareOrg, inShareGroup)
+
+    print("Finish Publishing")
+
+    # Delete tables and layers from the map view
+    table_list = m.listTables()
+    for tbl in table_list:
+        m.removeTable(tbl)
+    fc_list = m.listLayers()
+    for fc in fc_list:
+        m.removeLayer(fc)
+    aprx.save()
+
+
+
 
 if __name__ == '__main__':
     # Global Environment settings
     with arcpy.EnvManager(outputCoordinateSystem = coordsys, scratchWorkspace = ws, workspace = ws):
         BioModel()
+        GDBToMap()
+        AGOLUpload()
