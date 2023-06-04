@@ -1,4 +1,4 @@
-# BMModel() >> Biomonitoring data processing model
+# BioModel() >> Biomonitoring data processing model
 # GDBToMap() >> Add all feature classes and tables to the map display
 # AGOLUpload() >> Upload all layers and tables to ArcGIS Online
 
