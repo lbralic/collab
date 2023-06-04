@@ -1,7 +1,3 @@
-# PWQMNModel() >> PWQMN data processing model
-# GDBToMap() >> Add all feature classes and tables to the map display
-# AGOLUpload() >> Upload all layers and tables to ArcGIS Online
-
 # Required edits
 #   Under "Required Edit 1": Enter data/workspace paths
 
@@ -9,17 +5,21 @@
 #   Under "Optional Edit 1": Enter the summary, tags, etc. that will appear on AGOL
 #   Under "Optional Edit 2": Alter the sharing preferences
 
+# PWQMNModel() >> PWQMN data processing model
+# GDBToMap() >> Add all feature classes and tables to the map display
+# AGOLUpload() >> Upload all layers and tables to ArcGIS Online
+
 import arcpy, os
 
 # >>> Required Edit 1: Input paths
 # Path to PWQMN Excel file
-input_PWQMN_table = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Data\2023-04-11_PWQMNdata_GISDashboard.xlsx"
+input_PWQMN_table = r"C:\2023-04-11_PWQMNdata_GISDashboard.xlsx"
 # Path to geodatabase
-ws = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Testing\PWQMN\PWQMN_test.gdb"
+ws = r"C:\PWQMN\PWQMN_test.gdb"
 # Path to .aprx file
-aprx_path = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Testing\PWQMN\PWQMN_test.aprx"
+aprx_path = r"C:\PWQMN\PWQMN_test.aprx"
 # Empty output folder for the service definition drafts
-outdir = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Script\Output"
+outdir = r"C:\Output"
 
 # Coordinate system
 coordsys = "PROJCS[\"NAD_1983_CSRS_UTM_Zone_17N\",GEOGCS[\"GCS_North_American_1983_CSRS\",DATUM[\"D_North_American_1983_CSRS\",SPHEROID[\"GRS_1980\",6378137.0,298.257222101]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"False_Easting\",500000.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",-81.0],PARAMETER[\"Scale_Factor\",0.9996],PARAMETER[\"Latitude_Of_Origin\",0.0],UNIT[\"Meter\",1.0]]"
@@ -35,20 +35,18 @@ def PWQMNModel():
     arcpy.conversion.ExcelToTable(input_PWQMN_table, "PWQMN")
 
     # Create a PWQMN_Stations feature class from the imported Excel file
-    PWQMN_raw = os.path.join(ws, "PWQMN")
-    # Select the 11 stations
-    PWQMNStation_where = "OBJECTID >= 1 AND OBJECTID <= 11"
-    PWQMNStation_Select = arcpy.management.SelectLayerByAttribute(PWQMN_raw, where_clause = PWQMNStation_where)
+    PWQMN_raw = "PWQMN"
+    PWQMN_Stations = "PWQMN_Stations"
     # Convert the table to a point feature class
-    arcpy.management.XYTableToPoint(PWQMNStation_Select, "PWQMN_Stations", "East", "North", "", coordsys)
+    arcpy.management.XYTableToPoint(PWQMN_raw, PWQMN_Stations, "East", "North", "", coordsys)
+    # Delete duplicate site codes
+    arcpy.management.DeleteIdentical(PWQMN_Stations, "Station__")
     # Only keep the fields that contain the basic station information
-    PWQMN_Stations = os.path.join(ws, "PWQMN_Stations")
     field_list = arcpy.ListFields(PWQMN_Stations)
     field_list_delete = []
     for field in field_list:
         if field.baseName != "OBJECTID" and field.baseName != "Shape" and field.baseName != "Station__" and field.baseName != "BOW_SITE_DESC" and field.baseName != "SAMPLE_PT_DESC_1":
             field_list_delete.append(field.baseName)
-    print(field_list_delete)
     arcpy.management.DeleteField(PWQMN_Stations, drop_field=field_list_delete)
 
     # Create a TEST_CODE domain
@@ -100,26 +98,20 @@ def PWQMNModel():
 def GDBToMap():
     print(">> Adding data to map...")
     aprx = arcpy.mp.ArcGISProject(aprx_path)
-    m = aprx.listMaps()[0]          # Enter the name of the map if there are multiple, ie. aprx.listMaps("MapName")[0]
-    fcs = arcpy.ListFeatureClasses()
-    for fc in fcs:
-        desc_fc = arcpy.Describe(fc)
-        fc_name = desc_fc.baseName
-        arcpy.management.MakeFeatureLayer(fc, fc_name)
-        lyr_name = "{}.lyrx".format(fc_name)
-        arcpy.management.SaveToLayerFile(fc_name, lyr_name)
-        lyr_path = os.path.join(os.path.dirname(ws), lyr_name)
-        lyr = arcpy.mp.LayerFile(lyr_path)
-        m.addLayer(lyr)
-    tables = arcpy.ListTables()
-    for table in tables:
-        desc_table = arcpy.Describe(table)
-        name_table = desc_table.baseName
-        # Only add PWQMN_Data to the map view
-        if name_table == "PWQMN_Data":
-            table_path = os.path.join(ws, table)
-            addTab = arcpy.mp.Table(table_path)
-            m.addTable(addTab)
+    m = aprx.listMaps()[0]
+    # Add stations (point layer)
+    fc = "PWQMN_Stations"
+    arcpy.management.MakeFeatureLayer(fc, fc)
+    lyr_name = "{}.lyrx".format(fc)
+    arcpy.management.SaveToLayerFile(fc, lyr_name)
+    lyr_path = os.path.join(os.path.dirname(ws), lyr_name)
+    lyr = arcpy.mp.LayerFile(lyr_path)
+    m.addLayer(lyr)
+    # Add data (table)
+    table = "PWQMN_Data"
+    table_path = os.path.join(ws, table)
+    addTab = arcpy.mp.Table(table_path)
+    m.addTable(addTab)
     aprx.save()
 
 # Upload all layers and tables to ArcGIS Online
@@ -130,7 +122,7 @@ def AGOLUpload():
     # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/stage-service.htm
 
     # Set output file names
-    service_name = "Kawartha Conservation PWQMN Data test"          # Name of the feature layer to be uploaded to AGOL
+    service_name = "Kawartha Conservation PWQMN Data"          # Name of the feature layer to be uploaded to AGOL
     sddraft_filename = service_name + ".sddraft"
     sddraft_output_filename = os.path.join(outdir, sddraft_filename)
     sd_filename = service_name + ".sd"
@@ -182,9 +174,9 @@ def AGOLUpload():
     # Documentation: https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
     inOverride = "OVERRIDE_DEFINITION"
     # Sharing options
-    inSharePublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
+    inSharePublic = "PUBLIC"                 # Enter "PUBLIC" or "PRIVATE"
     inShareOrg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
-    inShareGroup = ""                         # Enter the name of the group(s): in_groups or [in_groups,...]
+    inShareGroup = "Kawartha Conservation Collaborative Project"                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
     # AGOL folder name
     inFolderType = "Existing"                         # Enter "Existing" to specify an existing folder
     inFolderName = "Collab"                         # Enter the existing AGOL folder name
@@ -209,3 +201,5 @@ if __name__ == '__main__':
         PWQMNModel()
         GDBToMap()
         AGOLUpload()
+
+print("Done")
