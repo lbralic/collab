@@ -135,7 +135,7 @@ def AGOLUpload():
     # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/stage-service.htm
 
     # Set output file names
-    service_name = "Kawartha Conservation PWQMN Data test"          # Name of the feature layer to be uploaded to AGOL
+    service_name = "Kawartha Conservation PWQMN Data"          # Name of the feature layer to be uploaded to AGOL
     sddraft_filename = service_name + ".sddraft"
     sddraft_output_filename = os.path.join(outdir, sddraft_filename)
     sd_filename = service_name + ".sd"
