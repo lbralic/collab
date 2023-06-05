@@ -110,8 +110,8 @@ def PWQMNModel():
 # Add all feature classes and tables to the map display
 def GDBToMap():
     print(">> Adding data to map...")
-    aprx = arcpy.mp.ArcGISProject(aprx_path)
-    m = aprx.listMaps()[0]
+    # aprx = arcpy.mp.ArcGISProject(aprx_path)
+    # m = aprx.listMaps()[0]
     # Add stations (point layer)
     fc = "PWQMN_Stations"
     arcpy.management.MakeFeatureLayer(fc, fc)
@@ -149,8 +149,8 @@ def AGOLUpload():
         os.remove(sd_output_filename)
 
     # Reference layers to publish
-    aprx = arcpy.mp.ArcGISProject(aprx_path)
-    m = aprx.listMaps()[0]      # Specify the name of the map if necessary
+    # aprx = arcpy.mp.ArcGISProject(aprx_path)
+    # m = aprx.listMaps()[0]      # Specify the name of the map if necessary
     lyr_list = []               # List layers and tables
     lyrs = m.listLayers()       # List layers
     tables = m.listTables()     # List tables
@@ -190,7 +190,7 @@ def AGOLUpload():
     # Documentation: https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
     inOverride = "OVERRIDE_DEFINITION"
     # Sharing options
-    inSharePublic = "PUBLIC"                 # Enter "PUBLIC" or "PRIVATE"
+    inSharePublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
     inShareOrg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
     inShareGroup = ""                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
     # AGOL folder name
