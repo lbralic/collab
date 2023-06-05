@@ -14,13 +14,13 @@ import arcpy, os, pandas as pd
 ##########################################
 # >>> Required Edit 1: Input paths
 # Path to raw Biomonitoring .xlsx file
-input_BM_table = r"E:\Documents\Fleming_College\Semester_3\APST62_Collab\Project\Data\Biomonitoring Data for Dashboard)-June2,2023.xlsx"
+input_BM_table = r"C:\Data\Biomonitoring Data for Dashboard)-June2,2023.xlsx"
 # Path to geodatabase
-ws = r"C:\Users\Lucija\Desktop\Deliverables\Project\Project.gdb"
+ws = r"C:\Project\Project.gdb"
 # Path to .aprx file
-aprx_path = r"C:\Users\Lucija\Desktop\Deliverables\Project\Project.aprx"
+aprx_path = r"C:\Project\Project.aprx"
 # Empty output folder for the service definition drafts
-outdir = r"C:\Users\Lucija\Desktop\Deliverables\Output"
+outdir = r"C:\Output"
 ##########################################
 
 # Coordinate system
@@ -165,7 +165,7 @@ def AGOLUpload():
     # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/stage-service.htm
 
     # Set output file names
-    service_name = "Kawartha Conservation Biomonitoring Data test"          # Name of the feature layer to be uploaded to AGOL
+    service_name = "Kawartha Conservation Biomonitoring Data"          # Name of the feature layer to be uploaded to AGOL
     sddraft_filename = service_name + ".sddraft"
     sddraft_output_filename = os.path.join(outdir, sddraft_filename)
     sd_filename = service_name + ".sd"
@@ -224,8 +224,8 @@ def AGOLUpload():
     inShareOrg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
     inShareGroup = ""                         # Enter the name of the group(s): in_groups or [in_groups,...]
     # AGOL folder name
-    inFolderType = "Existing"                         # Enter "Existing" to specify an existing folder
-    inFolderName = "Collab"                         # Enter the existing AGOL folder name
+    inFolderType = ""                         # Enter "Existing" to specify an existing folder
+    inFolderName = ""                         # Enter the existing AGOL folder name
     print("Start Uploading")
     ##########################################
 
