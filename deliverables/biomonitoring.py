@@ -28,6 +28,17 @@ coordsys = "PROJCS[\"NAD_1983_CSRS_UTM_Zone_17N\",GEOGCS[\"GCS_North_American_19
 
 arcpy.env.overwriteOutput = True
 
+# Remove layers and tables from map view
+aprx = arcpy.mp.ArcGISProject(aprx_path)
+m = aprx.listMaps()[0] 
+table_list = m.listTables()
+for tbl in table_list:
+    m.removeTable(tbl)
+fc_list = m.listLayers()
+for fc in fc_list:
+    m.removeLayer(fc)
+aprx.save()
+
 def BioModel():
     print(">> Processing the Biomonitoring data...")
 
@@ -140,8 +151,8 @@ def BioModel():
 # Add all feature classes and tables to the map display
 def GDBToMap():
     print(">> Adding data to map...")
-    aprx = arcpy.mp.ArcGISProject(aprx_path)
-    m = aprx.listMaps()[0]
+    # aprx = arcpy.mp.ArcGISProject(aprx_path)
+    # m = aprx.listMaps()[0]
     # Add stations (point layer)
     fc = "Biomonitoring_Stations"
     arcpy.management.MakeFeatureLayer(fc, fc)
@@ -179,8 +190,8 @@ def AGOLUpload():
         os.remove(sd_output_filename)
 
     # Reference layers to publish
-    aprx = arcpy.mp.ArcGISProject(aprx_path)
-    m = aprx.listMaps()[0]      # Specify the name of the map if necessary
+    # aprx = arcpy.mp.ArcGISProject(aprx_path)
+    # m = aprx.listMaps()[0]      # Specify the name of the map if necessary
     lyr_list = []               # List layers and tables
     lyrs = m.listLayers()       # List layers
     tables = m.listTables()     # List tables
