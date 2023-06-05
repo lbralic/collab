@@ -70,8 +70,6 @@ def xlsx_sheets_to_csv(path_to_excel_file, output_folder):
 # e.g. GDBToMap(["TemperatureMonitoringPoints"], ["TemperatureMonitoringData", "AnotherTable"])
 def GDBToMap(fcs, tables):
     print(">> Adding data to map...")
-    if len(m) == 0:
-         raise ValueError("No map found! Make sure the ArcGIS project has a map in it.")
     # Add stations (point layer)
     fc = "TemperatureMonitoringPoints"
     arcpy.management.MakeFeatureLayer(fc, fc)
