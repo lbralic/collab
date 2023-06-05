@@ -28,6 +28,17 @@ coordsys = "PROJCS[\"NAD_1983_CSRS_UTM_Zone_17N\",GEOGCS[\"GCS_North_American_19
 
 arcpy.env.overwriteOutput = True
 
+# Remove layers and tables from map view
+aprx = arcpy.mp.ArcGISProject(aprx_path)
+m = aprx.listMaps()[0] 
+table_list = m.listTables()
+for tbl in table_list:
+    m.removeTable(tbl)
+fc_list = m.listLayers()
+for fc in fc_list:
+    m.removeLayer(fc)
+aprx.save()
+
 # PWQMN Data Processing
 def PWQMNModel():
     print(">> Processing the PWQMN data...")
