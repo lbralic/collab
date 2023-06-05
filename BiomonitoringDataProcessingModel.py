@@ -133,7 +133,7 @@ def GDBToMap():
     aprx = arcpy.mp.ArcGISProject(aprx_path)
     m = aprx.listMaps()[0]
     # Add stations (point layer)
-    fc = "Biomitoring_Stations"
+    fc = "Biomonitoring_Stations"
     arcpy.management.MakeFeatureLayer(fc, fc)
     lyr_name = "{}.lyrx".format(fc)
     arcpy.management.SaveToLayerFile(fc, lyr_name)
@@ -141,7 +141,7 @@ def GDBToMap():
     lyr = arcpy.mp.LayerFile(lyr_path)
     m.addLayer(lyr)
     # Add data (table)
-    table = "Biomitoring_Data"
+    table = "Biomonitoring_Data"
     table_path = os.path.join(ws, table)
     addTab = arcpy.mp.Table(table_path)
     m.addTable(addTab)
