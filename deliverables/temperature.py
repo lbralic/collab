@@ -187,7 +187,7 @@ def TempModel(data_names_for_sheet_names):
     files_in_xlsx_folder = os.listdir(input_Temp_Table)
     for filename in files_in_xlsx_folder:
         # skip anything in the folder that isn't a .xlsx
-        if not filename.endswith(".xlsx"):
+        if filename.endswith(".xlsx") == False:
             continue  # skips to the next file in the loop
         xlsx_sheets_to_csv(input_Temp_Table + "/" + filename, output_Temp_Table)
 
