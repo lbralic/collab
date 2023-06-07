@@ -26,6 +26,7 @@ aprx_path = r"C:\Winter2023\COLLAB\TempDB\TemperatureMonitoringProject\Temperatu
 outdir = r"C:\Winter2023\COLLAB\TempDB\TemperatureMonitoringProject\Output"
 ##########################################
 
+
 ##########################################
 # >>> Required Edit 2: Enter the names of the excel files/ sheets if they are different  
 # Change the keys (left hand side) of this dictionary to match the names of the sheets in the .xlsx file to the names of the tables (right hand side)
@@ -210,7 +211,7 @@ def TempModel(data_names_for_sheet_names):
     arcpy.management.AddField("TemperatureMonitoringData", "Date", "DATE")
     arcpy.management.AddField("TemperatureMonitoringData", "textDate", "TEXT")
 
-    expression_coldwater_date = "calcDate(!RowLabels!, !Year!)"
+    expression_coldwater_date = "calcDate(!Row_Labels!, !Year!)"
     codeblock_coldwater_date = """
 def calcDate(month, year):
     monthDictionary = {
@@ -232,7 +233,7 @@ def calcDate(month, year):
     return dateString
     """
 
-    expression_coldwater_textDate = "calcDate(!RowLabels!, !Year!)"
+    expression_coldwater_textDate = "calcDate(!Row_Labels!, !Year!)"
     codeblock_coldwater_textDate = """
 def calcDate(month, year):
     dateString = month + " " + str(int(year))
@@ -244,7 +245,7 @@ def calcDate(month, year):
     arcpy.management.CalculateField("TemperatureMonitoringData", "textDate", expression_coldwater_textDate, code_block = codeblock_coldwater_textDate)
 
     #### Delete the unnecessary fields in TemperatureMonitoringData
-    arcpy.management.DeleteField("TemperatureMonitoringData", ["Year","RowLabels"], "DELETE_FIELDS")
+    arcpy.management.DeleteField("TemperatureMonitoringData", ["Year","Row_Labels"], "DELETE_FIELDS")
 
 
     #### Create the Point Class
