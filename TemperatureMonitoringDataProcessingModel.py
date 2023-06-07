@@ -4,7 +4,7 @@
 
 # Required edits
 #   Under "Required Edit 1": Enter data/workspace paths
-#   Under "Required Edit 2": Enter the names of the excel files/ sheets 
+#   Under "Required Edit 2": Enter the names of the excel files/sheets 
 
 # Optional edits
 #   Under "Optional Edit 1": Enter the summary, tags, etc. that will appear on AGOL
@@ -12,6 +12,7 @@
 
 import arcpy, os, pandas as pd
 
+##########################################
 # >>> Required Edit 1: Input paths
 # Path to the input TempMonitoring Excel file
 input_Temp_Table = r"C:\Winter2023\COLLAB\Data"
@@ -29,12 +30,23 @@ data_names_for_sheet_names = {
     "Coldwater Streams - metadata": "TemperatureMonitoringXYData",
     "ColdwaterStreams": "TemperatureMonitoringData"
 }
+##########################################
 
 # Coordinate system
 coordsys = "PROJCS[\"NAD_1983_CSRS_UTM_Zone_17N\",GEOGCS[\"GCS_North_American_1983_CSRS\",DATUM[\"D_North_American_1983_CSRS\",SPHEROID[\"GRS_1980\",6378137.0,298.257222101]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"False_Easting\",500000.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",-81.0],PARAMETER[\"Scale_Factor\",0.9996],PARAMETER[\"Latitude_Of_Origin\",0.0],UNIT[\"Meter\",1.0]]"
 
 arcpy.env.overwriteOutput = True
 
+# Remove layers and tables from map view
+aprx = arcpy.mp.ArcGISProject(aprx_path)
+m = aprx.listMaps()[0] 
+table_list = m.listTables()
+for tbl in table_list:
+    m.removeTable(tbl)
+fc_list = m.listLayers()
+for fc in fc_list:
+    m.removeLayer(fc)
+aprx.save()
 
 #############################################
 #####        HELPER FUNCTIONS           #####
@@ -55,30 +67,19 @@ def xlsx_sheets_to_csv(path_to_excel_file, output_folder):
 # e.g. GDBToMap(["TemperatureMonitoringPoints"], ["TemperatureMonitoringData", "AnotherTable"])
 def GDBToMap(fcs, tables):
     print(">> Adding data to map...")
-    aprx = arcpy.mp.ArcGISProject(aprx_path)
-
-    # Get the map object that we want from the project
-    maps = aprx.listMaps()
-    if len(maps) == 0:
-        raise ValueError("No map found!  Make sure the ArcGIS project has a map in it.")
-    map = aprx.listMaps()[0]          # Enter the name of the map if there are multiple, ie. aprx.listMaps("MapName")[0]
-
-    # Add feature classes to map
-    for fc in fcs:
-        arcpy.management.MakeFeatureLayer(fc, fc)
-        lyr_name = "{}.lyrx".format(fc)
-        arcpy.management.SaveToLayerFile(fc, lyr_name)
-        lyr_path = os.path.join(os.path.dirname(ws), lyr_name)
-        lyr = arcpy.mp.LayerFile(lyr_path)
-        map.addLayer(lyr)
-
-    # Add tables to map
-    for table in tables:
-        table_path = os.path.join(ws, table)
-        addTable = arcpy.mp.Table(table_path)
-        map.addTable(addTable)
-        print("added table " + table_path)
-
+    # Add stations (point layer)
+    fc = "TemperatureMonitoringPoints"
+    arcpy.management.MakeFeatureLayer(fc, fc)
+    lyr_name = "{}.lyrx".format(fc)
+    arcpy.management.SaveToLayerFile(fc, lyr_name)
+    lyr_path = os.path.join(os.path.dirname(ws), lyr_name)
+    lyr = arcpy.mp.LayerFile(lyr_path)
+    m.addLayer(lyr)
+    # Add data (table)
+    table = "TemperatureMonitoringData"
+    table_path = os.path.join(ws, table)
+    addTab = arcpy.mp.Table(table_path)
+    m.addTable(addTab)
     aprx.save()
 
 # Upload all layers and tables to ArcGIS Online
@@ -102,8 +103,6 @@ def AGOLUpload(service_name):  # service_name is the name of the feature layer t
         os.remove(sd_output_filename)
 
     # Reference layers to publish
-    aprx = arcpy.mp.ArcGISProject(aprx_path)
-    m = aprx.listMaps()[0]      # Specify the name of the map if necessary
     lyr_list = []               # List layers and tables
     lyrs = m.listLayers()       # List layers
     tables = m.listTables()     # List tables
@@ -114,6 +113,7 @@ def AGOLUpload(service_name):  # service_name is the name of the feature layer t
     for x in range(count_tables):
         lyr_list.append(tables[x])
 
+    ##########################################
     # Create FeatureSharingDraft and enable overwriting
     # >>> Optional Edit 1: Enter the summary, tags, etc. that will appear on AGOL
     server_type = "HOSTING_SERVER"
@@ -125,6 +125,7 @@ def AGOLUpload(service_name):  # service_name is the name of the feature layer t
     sddraft.credits = "My Credits"
     sddraft.useLimitations = "My Use Limitations"
     sddraft.overwriteExistingService = True
+    ##########################################
 
     # Create Service Definition Draft file
     # Parameters: exportToSDDraft(out_sddraft)
@@ -135,17 +136,20 @@ def AGOLUpload(service_name):  # service_name is the name of the feature layer t
     # Parameters: arcpy.server.StageService(in_service_definition_draft, out_service_definition, {staging_version})
     arcpy.server.StageService(sddraft_output_filename, sd_output_filename)
 
+    ##########################################
     # Share to portal
     # >>> Optional Edit 2: Alter sharing preferences
     # Documentation: https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
     inOverride = "OVERRIDE_DEFINITION"
     # Sharing options
-    inSharePublic = "PUBLIC"                 # Enter "PUBLIC" or "PRIVATE"
+    inSharePublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
     inShareOrg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
-    inShareGroup = "Kawartha Conservation Collaborative Project"                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
+    inShareGroup = ""                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
     # AGOL folder name
-    inFolderType = "Existing"                         # Enter "Existing" to specify an existing folder
-    inFolderName = "Collab"                         # Enter the existing AGOL folder name
+    inFolderType = ""                         # Enter "Existing" to specify an existing folder
+    inFolderName = ""                         # Enter the existing AGOL folder name
+    ##########################################
+
     print("Start Uploading")
     # Parameters: arcpy.server.UploadServiceDefinition(in_sd_file, in_server, {in_service_name}, {in_cluster}, {in_folder_type}, {in_folder}, {in_startupType}, {in_override}, {in_my_contents}, {in_public}, {in_organization}, {in_groups})
     arcpy.server.UploadServiceDefinition(sd_output_filename, server_type, "", "", inFolderType, inFolderName, "", inOverride, "", inSharePublic, inShareOrg, inShareGroup)
@@ -185,13 +189,13 @@ def TempModel(data_names_for_sheet_names):
     ##### Load all the .csv files into arcpy tables #####
     files_in_data_folder = os.listdir(output_Temp_Table)
     for filename in files_in_data_folder:
-        # skip anything in the folder that isn't a .csv
-        if not filename.endswith(".csv"):
-            continue  # skips to the next file in the loop
-
         # take the ".csv" off the filename, and then get our name for that sheet's data
         sheet_name = os.path.splitext(filename)[0]
-        out_table_name = data_names_for_sheet_names[sheet_name] 
+        # skip anything in the folder that isn't a .csv
+        if (filename.endswith(".csv") == False) or (sheet_name not in list(data_names_for_sheet_names.keys())):
+            continue  # skips to the next file in the loop
+        
+        out_table_name = data_names_for_sheet_names[sheet_name]
 
         arcpy.conversion.ExportTable(output_Temp_Table + "/" + filename, out_table_name)  
         print("Created table " + out_table_name)
@@ -200,7 +204,7 @@ def TempModel(data_names_for_sheet_names):
     arcpy.management.AddField("TemperatureMonitoringData", "Date", "DATE")
     arcpy.management.AddField("TemperatureMonitoringData", "textDate", "TEXT")
 
-    expression_coldwater_date = "calcDate(!RowLabels!, !Year!)"
+    expression_coldwater_date = "calcDate(!Row_Labels!, !Year!)"
     codeblock_coldwater_date = """
 def calcDate(month, year):
     monthDictionary = {
@@ -218,11 +222,11 @@ def calcDate(month, year):
         "Dec": "12"
     }
 
-    dateString = str(int(year)) + "-" + monthDictionary[month] + "-01"
+    dateString = str(int(year)) + "/" + monthDictionary[month] + "/01 12:00:00"
     return dateString
     """
 
-    expression_coldwater_textDate = "calcDate(!RowLabels!, !Year!)"
+    expression_coldwater_textDate = "calcDate(!Row_Labels!, !Year!)"
     codeblock_coldwater_textDate = """
 def calcDate(month, year):
     dateString = month + " " + str(int(year))
@@ -234,7 +238,7 @@ def calcDate(month, year):
     arcpy.management.CalculateField("TemperatureMonitoringData", "textDate", expression_coldwater_textDate, code_block = codeblock_coldwater_textDate)
 
     #### Delete the unnecessary fields in TemperatureMonitoringData
-    arcpy.management.DeleteField("TemperatureMonitoringData", ["Year","RowLabels"], "DELETE_FIELDS")
+    arcpy.management.DeleteField("TemperatureMonitoringData", ["Year","Row_Labels"], "DELETE_FIELDS")
 
 
     #### Create the Point Class

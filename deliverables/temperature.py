@@ -15,15 +15,15 @@ import arcpy, os, pandas as pd
 ##########################################
 # >>> Required Edit 1: Input paths
 # Path to the folder that contains the TempMonitoring Excel file
-input_Temp_Table = r"C:\Data"
+input_Temp_Table = r"C:\Winter2023\COLLAB\Data"
 # Path to the output TempMonitoring folder - the folder where the csv files are placed
-output_Temp_Table = r"C:\Output"
+output_Temp_Table = r"C:\Winter2023\COLLAB\TempDB"
 # Path to geodatabase 
-ws = r"C:\Project\Project.gdb"
+ws = r"C:\Winter2023\COLLAB\TempDB\TemperatureMonitoringProject\TemperatureMonitoringProject.gdb"
 # Path to .aprx file 
-aprx_path = r"C:\Project\Project.aprx"
+aprx_path = r"C:\Winter2023\COLLAB\TempDB\TemperatureMonitoringProject\TemperatureMonitoringProject.aprx"
 # Empty output folder for the service definition drafts
-outdir = r"C:\Output"
+outdir = r"C:\Winter2023\COLLAB\TempDB\TemperatureMonitoringProject\Output"
 ##########################################
 
 ##########################################
@@ -42,7 +42,10 @@ arcpy.env.overwriteOutput = True
 
 # Remove layers and tables from map view
 aprx = arcpy.mp.ArcGISProject(aprx_path)
-m = aprx.listMaps()[0] 
+maps = aprx.listMaps()
+if len(maps) == 0:
+    raise ValueError("       No map found!  Make sure the ArcGIS project has a map in it.")
+m = maps[0] 
 table_list = m.listTables()
 for tbl in table_list:
     m.removeTable(tbl)
@@ -58,7 +61,7 @@ aprx.save()
 
 # Excel File Data Pre-Processing - makes .xslx file into .csvs and removes any spaces from field names.
 def xlsx_sheets_to_csv(path_to_excel_file, output_folder):
-    print(">>Processing the Excel table...") 
+    print(">> Processing the Excel table...") 
 
     for sheet_name, df in pd.read_excel(path_to_excel_file, index_col=0, sheet_name=None).items():
         csv_file = os.path.join(output_folder, f"{sheet_name}.csv")
@@ -99,7 +102,7 @@ def AGOLUpload(service_name):  # service_name is the name of the feature layer t
     sd_output_filename = os.path.join(outdir, sd_filename)
 
     # Delete existing files
-    print("Deleting existing files...")
+    print("       Deleting existing files...")
     if os.path.exists(sddraft_output_filename):
         os.remove(sddraft_output_filename)
     if os.path.exists(sd_output_filename):
@@ -135,7 +138,7 @@ def AGOLUpload(service_name):  # service_name is the name of the feature layer t
     sddraft.exportToSDDraft(sddraft_output_filename)
 
     # Stage Service
-    print("Start Staging")
+    print("       Start Staging")
     # Parameters: arcpy.server.StageService(in_service_definition_draft, out_service_definition, {staging_version})
     arcpy.server.StageService(sddraft_output_filename, sd_output_filename)
 
@@ -153,11 +156,11 @@ def AGOLUpload(service_name):  # service_name is the name of the feature layer t
     inFolderName = ""                         # Enter the existing AGOL folder name
     ##########################################
 
-    print("Start Uploading")
+    print(">> Start Uploading")
     # Parameters: arcpy.server.UploadServiceDefinition(in_sd_file, in_server, {in_service_name}, {in_cluster}, {in_folder_type}, {in_folder}, {in_startupType}, {in_override}, {in_my_contents}, {in_public}, {in_organization}, {in_groups})
     arcpy.server.UploadServiceDefinition(sd_output_filename, server_type, "", "", inFolderType, inFolderName, "", inOverride, "", inSharePublic, inShareOrg, inShareGroup)
 
-    print("Finish Publishing")
+    print(">> Finish Publishing")
 
     # Delete tables and layers from the map view
     table_list = m.listTables()
@@ -187,7 +190,7 @@ def TempModel(data_names_for_sheet_names):
             continue  # skips to the next file in the loop
         xlsx_sheets_to_csv(input_Temp_Table + "/" + filename, output_Temp_Table)
 
-    print("The .xlsx files have been converted to .csv files.")
+    print("       The .xlsx files have been converted to .csv files.")
     
     ##### Load all the .csv files into arcpy tables #####
     files_in_data_folder = os.listdir(output_Temp_Table)
@@ -201,13 +204,13 @@ def TempModel(data_names_for_sheet_names):
         out_table_name = data_names_for_sheet_names[sheet_name]
 
         arcpy.conversion.ExportTable(output_Temp_Table + "/" + filename, out_table_name)  
-        print("Created table " + out_table_name)
+        print("       Created table " + out_table_name)
 
     #### Add a field for the date and calculate it using the Row Labels and Year Fields 
     arcpy.management.AddField("TemperatureMonitoringData", "Date", "DATE")
     arcpy.management.AddField("TemperatureMonitoringData", "textDate", "TEXT")
 
-    expression_coldwater_date = "calcDate(!Row_Labels!, !Year!)"
+    expression_coldwater_date = "calcDate(!RowLabels!, !Year!)"
     codeblock_coldwater_date = """
 def calcDate(month, year):
     monthDictionary = {
@@ -225,11 +228,11 @@ def calcDate(month, year):
         "Dec": "12"
     }
 
-    dateString = str(int(year)) + "-" + monthDictionary[month] + "-01"
+    dateString = str(int(year)) + "/" + monthDictionary[month] + "/01 12:00:00"
     return dateString
     """
 
-    expression_coldwater_textDate = "calcDate(!Row_Labels!, !Year!)"
+    expression_coldwater_textDate = "calcDate(!RowLabels!, !Year!)"
     codeblock_coldwater_textDate = """
 def calcDate(month, year):
     dateString = month + " " + str(int(year))
@@ -241,19 +244,19 @@ def calcDate(month, year):
     arcpy.management.CalculateField("TemperatureMonitoringData", "textDate", expression_coldwater_textDate, code_block = codeblock_coldwater_textDate)
 
     #### Delete the unnecessary fields in TemperatureMonitoringData
-    arcpy.management.DeleteField("TemperatureMonitoringData", ["Year","Row_Labels"], "DELETE_FIELDS")
+    arcpy.management.DeleteField("TemperatureMonitoringData", ["Year","RowLabels"], "DELETE_FIELDS")
 
 
     #### Create the Point Class
     arcpy.management.XYTableToPoint("TemperatureMonitoringXYData", "TemperatureMonitoringPoints", "Easting", "Northing", coordinate_system="NAD 1983 UTM Zone 17N")
-    print("The feature class TemperatureMonitoringPoints has been updated.")
+    print("       The feature class TemperatureMonitoringPoints has been updated.")
 
 
     #### Create a Relationship Class 
     # Parameters: arcpy.management.CreateRelationshipClass(point_table, data_table, name_of_relationshipClass, "Composite", data_table_name, points_name, "FORWARD", "ONE_TO_MANY", "NONE", "the_common_field_SiteCode", "the_common_field")
     arcpy.management.CreateRelationshipClass("TemperatureMonitoringPoints", "TemperatureMonitoringData", "TemperatureMonitoringPoints_TemperatureMonitoringData", "Composite", "TemperatureMonitoringData", "TemperatureMonitoringPoints", "FORWARD", "ONE_TO_MANY", "NONE", "SiteCode", "SiteCode")
 
-    print("The relationship class has been updated.")
+    print("       The relationship class has been updated.")
 
 
 if __name__ == '__main__':
