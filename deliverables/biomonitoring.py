@@ -106,13 +106,13 @@ def BioModel():
     arcpy.AddField_management(csvname, "FamilyBioticIndex_Value", "DOUBLE", field_length = 20)
     arcpy.management.CalculateField(csvname, "FamilyBioticIndex_Value", "!Family_Biotic_Index_Value!")
     # delete original field **
-    arcpy.management.DeleteField(csvname, "Family_Biotic_Index_Value")
+    arcpy.management.DeleteField(csvname, ["Family_Biotic_Index_Value", "Field1"])
 
-    # Attribute Rules
+    # Create Global ID for attribute rules
     arcpy.management.AddGlobalIDs(csvname)
     # Add attribute rule(CALCULATION) for Family Biotic Index
     name = "FBI_calculateRuleCategory"
-    script_expression = 'return When($feature.FamilyBioticIndex_Value >=0 && $feature.FamilyBioticIndex_Value <= 3.75, "Excellent", $feature.FamilyBioticIndex_Value <= 4.25, "Very Good", $feature.FamilyBioticIndex_Value <= 5, "Good", $feature.FamilyBioticIndex_Value <= 5.75, "Fair", $feature.FamilyBioticIndex_Value <= 6.5, "Fairly Poor", $feature.FamilyBioticIndex_Value <= 7.25, "Poor", $feature.FamilyBioticIndex_Value <= 10, "Very Poor", "Not Available");'
+    script_expression = 'if ($feature.FamilyBioticIndex_Value > 0 && $feature.FamilyBioticIndex_Value <= 3.75) {return "Excellent"} else if ($feature.FamilyBioticIndex_Value > 3.75 && $feature.FamilyBioticIndex_Value <= 4.25) {return "Very Good"} else if ($feature.FamilyBioticIndex_Value > 4.25 && $feature.FamilyBioticIndex_Value <= 5) {return "Good"} else if ($feature.FamilyBioticIndex_Value > 5 && $feature.FamilyBioticIndex_Value <= 5.75) {return "Fair"} else if ($feature.FamilyBioticIndex_Value > 5.75 && $feature.FamilyBioticIndex_Value <= 6.5) {return "Fairly Poor"} else if ($feature.FamilyBioticIndex_Value > 6.5 && $feature.FamilyBioticIndex_Value <= 7.25) {return "Poor"} else if ($feature.FamilyBioticIndex_Value > 7.25 && $feature.FamilyBioticIndex_Value <= 10) {return "Very Poor"} else {return null}'
     triggering_events = "INSERT;UPDATE"
     description = "Populate Catogory Based on Value"
     # Run the AddAttributeRule tool
@@ -120,11 +120,11 @@ def BioModel():
 
     # Add attribute rule(CALCULATION) for sensitive organism
     name3 = "SO_calculateRuleCategory"
-    script_expression3 = 'return When($feature.Sensitive_Organisms_ >= 20.9, "Above Average", $feature.Sensitive_Organisms_ < 20.9, "Below Average", "Not Available");'
+    script_expression3 = 'if ($feature.Sensitive_Organisms_ > 20.9) {return "Above Average"} else if ($feature.Sensitive_Organisms_ > 0 && $feature.Sensitive_Organisms_ < 20.9 ) {return "Below Average"} else if ($feature.Sensitive_Organisms_ == 20.9 ) {return "Average"} else{return null}'
     triggering_events = "INSERT;UPDATE"
-    description = "Populate Catogory Based on Value"
+    description3 = "Populate Catogory Based on Value"
     # Run the AddAttributeRule tool
-    arcpy.management.AddAttributeRule(csvname, name3, "CALCULATION", script_expression3, "EDITABLE", triggering_events, "", "", description, "", infield_SO)
+    arcpy.management.AddAttributeRule(csvname, name3, "CALCULATION", script_expression3, "EDITABLE", triggering_events, "", "", description3, "", infield_SO)
 
     # Add attribute rule(CONSTRAINT) for Family Biotic Index
     name2 = "FBConstraintRule"
