@@ -2,17 +2,13 @@
 # GDBToMap() >> Add all feature classes and tables to the map display
 # AGOLUpload() >> Upload all layers and tables to ArcGIS Online
 
-# Required edits
-#   Under "Required Edit 1": Enter data/workspace paths
+#############################################
+#####               INPUTS              #####
+#############################################
 
-# Optional edits
-#   Under "Optional Edit 1": Enter the summary, tags, etc. that will appear on AGOL
-#   Under "Optional Edit 2": Alter the sharing preferences
+############## Required inputs ##############
 
-import arcpy, os, pandas as pd
-
-##########################################
-# >>> Required Edit 1: Input paths
+# >>> File paths
 # Path to raw Biomonitoring .xlsx file
 input_BM_table = r"C:\Data\Biomonitoring Data for Dashboard)-June2,2023.xlsx"
 # Path to geodatabase
@@ -21,7 +17,33 @@ ws = r"C:\Project\Project.gdb"
 aprx_path = r"C:\Project\Project.aprx"
 # Empty output folder for the service definition drafts
 outdir = r"C:\Output"
-##########################################
+
+
+############## Optional inputs ##############
+
+# >>> Input the name of the feature layer to be uploaded to AGOL
+service_name = "Kawartha Conservation Biomonitoring Data"
+
+# >>> Enter the summary, tags, etc. that will appear on AGOL
+mysummary = "My Summary"
+mytags = "My Tags"
+mydescription = "My Description"
+mycredits = "My Credits"
+myuselimitations = "My Use Limitations"
+
+# >>> Alter sharing preferences
+# Sharing options
+sharepublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
+shareorg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
+sharegroup = ""                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
+# AGOL folder name
+foldertype = ""                         # Enter "Existing" to specify an existing folder
+foldername = ""                         # Enter the existing AGOL folder name
+
+########################################################################################
+
+
+import arcpy, os, pandas as pd
 
 # Coordinate system
 coordsys = "PROJCS[\"NAD_1983_CSRS_UTM_Zone_17N\",GEOGCS[\"GCS_North_American_1983_CSRS\",DATUM[\"D_North_American_1983_CSRS\",SPHEROID[\"GRS_1980\",6378137.0,298.257222101]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"False_Easting\",500000.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",-81.0],PARAMETER[\"Scale_Factor\",0.9996],PARAMETER[\"Latitude_Of_Origin\",0.0],UNIT[\"Meter\",1.0]]"
@@ -178,7 +200,6 @@ def AGOLUpload():
     # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/stage-service.htm
 
     # Set output file names
-    service_name = "Kawartha Conservation Biomonitoring Data"          # Name of the feature layer to be uploaded to AGOL
     sddraft_filename = service_name + ".sddraft"
     sddraft_output_filename = os.path.join(outdir, sddraft_filename)
     sd_filename = service_name + ".sd"
@@ -204,19 +225,16 @@ def AGOLUpload():
     for x in range(count_tables):
         lyr_list.append(tables[x])
 
-    ##########################################
-    # >>> Optional Edit 1: Enter the summary, tags, etc. that will appear on AGOL
     # Create FeatureSharingDraft and enable overwriting
     server_type = "HOSTING_SERVER"
     # Parameters: getWebLayerSharingDraft(server_type, service_type, service_name, {layers_and_tables})
     sddraft = m.getWebLayerSharingDraft(server_type, "FEATURE", service_name, lyr_list)
-    sddraft.summary = "My Summary"
-    sddraft.tags = "My Tags"
-    sddraft.description = "My Description"
-    sddraft.credits = "My Credits"
-    sddraft.useLimitations = "My Use Limitations"
+    sddraft.summary = mysummary
+    sddraft.tags = mytags
+    sddraft.description = mydescription
+    sddraft.credits = mycredits
+    sddraft.useLimitations = myuselimitations
     sddraft.overwriteExistingService = True
-    ##########################################
 
     # Create Service Definition Draft file
     # Parameters: exportToSDDraft(out_sddraft)
@@ -227,20 +245,17 @@ def AGOLUpload():
     # Parameters: arcpy.server.StageService(in_service_definition_draft, out_service_definition, {staging_version})
     arcpy.server.StageService(sddraft_output_filename, sd_output_filename)
 
-    ##########################################
     # Share to portal
-    # >>> Optional Edit 2: Alter sharing preferences
     # Documentation: https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
     inOverride = "OVERRIDE_DEFINITION"
     # Sharing options
-    inSharePublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
-    inShareOrg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
-    inShareGroup = ""                         # Enter the name of the group(s): in_groups or [in_groups,...]
+    inSharePublic = sharepublic
+    inShareOrg = shareorg
+    inShareGroup = sharegroup
     # AGOL folder name
-    inFolderType = ""                         # Enter "Existing" to specify an existing folder
-    inFolderName = ""                         # Enter the existing AGOL folder name
+    inFolderType = foldertype
+    inFolderName = foldername
     print("Start Uploading")
-    ##########################################
 
     # Parameters: arcpy.server.UploadServiceDefinition(in_sd_file, in_server, {in_service_name}, {in_cluster}, {in_folder_type}, {in_folder}, {in_startupType}, {in_override}, {in_my_contents}, {in_public}, {in_organization}, {in_groups})
     arcpy.server.UploadServiceDefinition(sd_output_filename, server_type, "", "", inFolderType, inFolderName, "", inOverride, "", inSharePublic, inShareOrg, inShareGroup)

@@ -2,17 +2,13 @@
 # GDBToMap() >> Add all feature classes and tables to the map display
 # AGOLUpload() >> Upload all layers and tables to ArcGIS Online
 
-# Required edits
-#   Under "Required Edit 1": Enter data/workspace paths
+#############################################
+#####               INPUTS              #####
+#############################################
 
-# Optional edits
-#   Under "Optional Edit 1": Enter the summary, tags, etc. that will appear on AGOL
-#   Under "Optional Edit 2": Alter the sharing preferences
+############## Required inputs ##############
 
-import arcpy, os
-
-##########################################
-# >>> Required Edit 1: Input paths
+# >>> File paths
 # Path to PWQMN Excel file
 input_PWQMN_table = r"C:\Data\2023-04-11_PWQMNdata_GISDashboard.xlsx"
 # Path to geodatabase
@@ -21,7 +17,33 @@ ws = r"C:\Project\Project.gdb"
 aprx_path = r"C:\Project\Project.aprx"
 # Empty output folder for the service definition drafts
 outdir = r"C:\Output"
-##########################################
+
+
+############## Optional inputs ##############
+
+# >>> Input the name of the feature layer to be uploaded to AGOL
+service_name = "Kawartha Conservation PWQMN Data"
+
+# >>> Enter the summary, tags, etc. that will appear on AGOL
+mysummary = "My Summary"
+mytags = "My Tags"
+mydescription = "My Description"
+mycredits = "My Credits"
+myuselimitations = "My Use Limitations"
+
+# >>> Alter sharing preferences
+# Sharing options
+sharepublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
+shareorg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
+sharegroup = ""                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
+# AGOL folder name
+foldertype = ""                         # Enter "Existing" to specify an existing folder
+foldername = ""                         # Enter the existing AGOL folder name
+
+########################################################################################
+
+
+import arcpy, os
 
 # Coordinate system
 coordsys = "PROJCS[\"NAD_1983_CSRS_UTM_Zone_17N\",GEOGCS[\"GCS_North_American_1983_CSRS\",DATUM[\"D_North_American_1983_CSRS\",SPHEROID[\"GRS_1980\",6378137.0,298.257222101]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"False_Easting\",500000.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",-81.0],PARAMETER[\"Scale_Factor\",0.9996],PARAMETER[\"Latitude_Of_Origin\",0.0],UNIT[\"Meter\",1.0]]"
@@ -47,8 +69,12 @@ def PWQMNModel():
     # Parameters: arcpy.conversion.ExcelToTable(Input_Excel_File, Output_Table, {Sheet}, {field_names_row}, {cell_range})
     arcpy.conversion.ExcelToTable(input_PWQMN_table, "PWQMN")
 
-    # Create a PWQMN_Stations feature class from the imported Excel file
+    # Convert all site descriptions to the same case (proper case)
     PWQMN_raw = "PWQMN"
+    arcpy.management.CalculateField(PWQMN_raw, field="BOW_SITE_DESC", expression="!BOW_SITE_DESC!.title()")[0]
+
+    print("\tCreating station points")
+    # Create a PWQMN_Stations feature class from the imported Excel file
     PWQMN_Stations = "PWQMN_Stations"
     # Convert the table to a point feature class
     arcpy.management.XYTableToPoint(PWQMN_raw, PWQMN_Stations, "East", "North", "", coordsys)
@@ -63,6 +89,7 @@ def PWQMNModel():
     arcpy.management.DeleteField(PWQMN_Stations, drop_field=field_list_delete)
 
     # Create a TEST_CODE domain
+    print("\tAdding domains")
     desc_ws = arcpy.Describe(ws)
     desc_domains = desc_ws.domains
     # Check if the domain exists
@@ -75,6 +102,7 @@ def PWQMNModel():
         arcpy.management.AddCodedValueToDomain(ws, domainname, code="CLIDUR", code_description="Chloride")[0]
         arcpy.management.AddCodedValueToDomain(ws, domainname, code="NNOTUR", code_description="Nitrate")[0]
         arcpy.management.AddCodedValueToDomain(ws, domainname, code="RSP ", code_description="Suspended Solids")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname, code="RSP", code_description="Suspended Solids")[0]
         arcpy.management.AddCodedValueToDomain(ws, domainname, code="DO", code_description="Dissolved Oxygen")[0]
         arcpy.management.AddCodedValueToDomain(ws, domainname, code="FWTEMP", code_description="Temperature")[0]
         arcpy.management.AddCodedValueToDomain(ws, domainname, code="CONDAM", code_description="Conductivity")[0]
@@ -82,6 +110,7 @@ def PWQMNModel():
     # Assign Domain To Field
     arcpy.management.AssignDomainToField(PWQMN_raw, field_name="TEST_CODE", domain_name="TESTCODE_domain")[0]
 
+    print("\tCalculating fields")
     # Populate the TEST_CODE records that contain null values
     PWQMN_SelectNull = arcpy.management.SelectLayerByAttribute(PWQMN_raw, where_clause="TEST_CODE IS NULL And DESCRIPTION LIKE '%Nitrate%'")
     arcpy.management.CalculateField(PWQMN_SelectNull, field="TEST_CODE", expression="'NNOTUR'")[0]
@@ -92,6 +121,12 @@ def PWQMNModel():
     arcpy.management.AddField(PWQMN_raw, "Result_", "DOUBLE")
     # Populate the new field
     arcpy.management.CalculateField(PWQMN_raw, field="Result_", expression="!Result!")
+
+    # Some of the Result records are equal to -9999, which skews the averages in ArcGIS Online
+    # Convert -9999 values to null
+    PWQMN_where2 = "Result = '-9999'"
+    PWQMN_Select2 = arcpy.management.SelectLayerByAttribute(PWQMN_raw, where_clause = PWQMN_where2)
+    arcpy.management.CalculateField(PWQMN_Select2, field="Result_", expression="None")
 
     # Export only the records that contain the required parameters (chloride, etc.) as PWQMN_Data
     PWQMN_where = "TEST_CODE = 'PPUT' Or TEST_CODE = 'CLIDUR' Or TEST_CODE = 'NNOTUR' Or TEST_CODE = 'RSP ' Or TEST_CODE = 'DO' Or TEST_CODE = 'FWTEMP' Or TEST_CODE = 'CONDAM'"
@@ -104,15 +139,16 @@ def PWQMNModel():
     arcpy.management.CalculateField(PWQMN_SelectPhos, field="Result", expression="!Result! * 1000")[0]
     arcpy.management.CalculateField(PWQMN_SelectPhos, field="UNITS", expression="'MICROGRAM PER LITER'")[0]
 
+    print("\tDeleting fields")
     # Delete repetitive/empty fields
     arcpy.management.DeleteField(PWQMN_Data, drop_field=["Conservation_Authority", "Watershed", "Active", "Unnamed__6", "Unnamed__7", "Result"])[0]
 
 # Add all feature classes and tables to the map display
 def GDBToMap():
     print(">> Adding data to map...")
-    # aprx = arcpy.mp.ArcGISProject(aprx_path)
-    # m = aprx.listMaps()[0]
+    
     # Add stations (point layer)
+    print("\tAdding layers")
     fc = "PWQMN_Stations"
     arcpy.management.MakeFeatureLayer(fc, fc)
     lyr_name = "{}.lyrx".format(fc)
@@ -120,11 +156,23 @@ def GDBToMap():
     lyr_path = os.path.join(os.path.dirname(ws), lyr_name)
     lyr = arcpy.mp.LayerFile(lyr_path)
     m.addLayer(lyr)
+    
+    # # Change symbology
+    # print("\tChanging Symbology")
+    # lyr_select = m.listLayers()[0]
+    # sym = lyr_select.symbology
+    # sym.renderer.symbol.color = {'RGB' : [0, 92, 230, 100]}
+    # sym.renderer.symbol.outlineColor = {'RGB' : [0, 0, 0, 100]}
+    # sym.renderer.symbol.size = 10
+    # lyr_select.symbology = sym
+    
     # Add data (table)
+    print("\tAdding tables")
     table = "PWQMN_Data"
     table_path = os.path.join(ws, table)
     addTab = arcpy.mp.Table(table_path)
     m.addTable(addTab)
+
     aprx.save()
 
 # Upload all layers and tables to ArcGIS Online
@@ -135,14 +183,14 @@ def AGOLUpload():
     # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/stage-service.htm
 
     # Set output file names
-    service_name = "Kawartha Conservation PWQMN Data"          # Name of the feature layer to be uploaded to AGOL
+
     sddraft_filename = service_name + ".sddraft"
     sddraft_output_filename = os.path.join(outdir, sddraft_filename)
     sd_filename = service_name + ".sd"
     sd_output_filename = os.path.join(outdir, sd_filename)
 
     # Delete existing files
-    print("Deleting existing files...")
+    print("\tDeleting existing files")
     if os.path.exists(sddraft_output_filename):
         os.remove(sddraft_output_filename)
     if os.path.exists(sd_output_filename):
@@ -161,48 +209,42 @@ def AGOLUpload():
     for x in range(count_tables):
         lyr_list.append(tables[x])
 
-    ##########################################
     # Create FeatureSharingDraft and enable overwriting
-    # >>> Optional Edit 1: Enter the summary, tags, etc. that will appear on AGOL
     server_type = "HOSTING_SERVER"
     # Parameters: getWebLayerSharingDraft(server_type, service_type, service_name, {layers_and_tables})
     sddraft = m.getWebLayerSharingDraft(server_type, "FEATURE", service_name, lyr_list)
-    sddraft.summary = "My Summary"
-    sddraft.tags = "My Tags"
-    sddraft.description = "My Description"
-    sddraft.credits = "My Credits"
-    sddraft.useLimitations = "My Use Limitations"
+    sddraft.summary = mysummary
+    sddraft.tags = mytags
+    sddraft.description = mydescription
+    sddraft.credits = mycredits
+    sddraft.useLimitations = myuselimitations
     sddraft.overwriteExistingService = True
-    ##########################################
 
     # Create Service Definition Draft file
     # Parameters: exportToSDDraft(out_sddraft)
     sddraft.exportToSDDraft(sddraft_output_filename)
 
     # Stage Service
-    print("Start Staging")
+    print("\tStart Staging")
     # Parameters: arcpy.server.StageService(in_service_definition_draft, out_service_definition, {staging_version})
     arcpy.server.StageService(sddraft_output_filename, sd_output_filename)
 
-    ##########################################
     # Share to portal
-    # >>> Optional Edit 2: Alter sharing preferences
     # Documentation: https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/upload-service-definition.htm
     inOverride = "OVERRIDE_DEFINITION"
     # Sharing options
-    inSharePublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
-    inShareOrg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
-    inShareGroup = ""                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
+    inSharePublic = sharepublic
+    inShareOrg = shareorg
+    inShareGroup = sharegroup
     # AGOL folder name
-    inFolderType = ""                         # Enter "Existing" to specify an existing folder
-    inFolderName = ""                         # Enter the existing AGOL folder name
-    print("Start Uploading")
-    ##########################################
+    inFolderType = foldertype
+    inFolderName = foldername
+    print("\tStart Uploading")
    
     # Parameters: arcpy.server.UploadServiceDefinition(in_sd_file, in_server, {in_service_name}, {in_cluster}, {in_folder_type}, {in_folder}, {in_startupType}, {in_override}, {in_my_contents}, {in_public}, {in_organization}, {in_groups})
     arcpy.server.UploadServiceDefinition(sd_output_filename, server_type, "", "", inFolderType, inFolderName, "", inOverride, "", inSharePublic, inShareOrg, inShareGroup)
 
-    print("Finish Publishing")
+    print("\tFinish Publishing")
 
     # Delete tables and layers from the map view
     table_list = m.listTables()
