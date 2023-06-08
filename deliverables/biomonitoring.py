@@ -42,7 +42,7 @@ aprx.save()
 def BioModel():
     print(">> Processing the Biomonitoring data...")
 
-    # Importing data:
+    # Importing data(xlsx to csv):
     # csv file path
     csvname = "Biomonitoring_Data"
     csvname_ext = csvname + ".csv"
@@ -55,8 +55,8 @@ def BioModel():
     df = pd.DataFrame(pd.read_csv(csvfilepath))
     # Displaying the dataframe object
     df.columns=df.columns.str.replace(' ', '_') # replace space with underscore
-    df.columns = df.columns.str.replace(r'\W+', '', regex=True) # delete non-word character
-    df.to_csv(csvfilepath, encoding='utf-8-sig')
+    df.columns = df.columns.str.replace(r'\W+', '', regex = True) # delete non-word character
+    df.to_csv(csvfilepath, encoding = 'utf-8-sig')
     # copy the csv file to geodatabase
     arcpy.conversion.ExportTable(csvfilepath, csvname)
 
@@ -102,15 +102,16 @@ def BioModel():
             arcpy.management.AddCodedValueToDomain(ws, domainname_FBI, code2, domDict_FBI[code2])[0]
     arcpy.AssignDomainToField_management(csvname, infield_FBI, domainname_FBI)[0]
 
-    # Add new field(Family Biotic Index Value), type DOUBLE 
+    # Add new field(Family Biotic Index Value), type DOUBLE. The original field is TEXT. 
     arcpy.AddField_management(csvname, "FamilyBioticIndex_Value", "DOUBLE", field_length = 20)
     arcpy.management.CalculateField(csvname, "FamilyBioticIndex_Value", "!Family_Biotic_Index_Value!")
-    # delete original field **
+    # delete field **
     arcpy.management.DeleteField(csvname, ["Family_Biotic_Index_Value", "Field1"])
-
+    
+    ###Calculation rules, automate category based on value
     # Create Global ID for attribute rules
     arcpy.management.AddGlobalIDs(csvname)
-    # Add attribute rule(CALCULATION) for Family Biotic Index
+    # Create attribute rule(CALCULATION) for Family Biotic Index
     name = "FBI_calculateRuleCategory"
     script_expression = 'if ($feature.FamilyBioticIndex_Value > 0 && $feature.FamilyBioticIndex_Value <= 3.75) {return "Excellent"} else if ($feature.FamilyBioticIndex_Value > 3.75 && $feature.FamilyBioticIndex_Value <= 4.25) {return "Very Good"} else if ($feature.FamilyBioticIndex_Value > 4.25 && $feature.FamilyBioticIndex_Value <= 5) {return "Good"} else if ($feature.FamilyBioticIndex_Value > 5 && $feature.FamilyBioticIndex_Value <= 5.75) {return "Fair"} else if ($feature.FamilyBioticIndex_Value > 5.75 && $feature.FamilyBioticIndex_Value <= 6.5) {return "Fairly Poor"} else if ($feature.FamilyBioticIndex_Value > 6.5 && $feature.FamilyBioticIndex_Value <= 7.25) {return "Poor"} else if ($feature.FamilyBioticIndex_Value > 7.25 && $feature.FamilyBioticIndex_Value <= 10) {return "Very Poor"} else {return null}'
     triggering_events = "INSERT;UPDATE"
@@ -118,35 +119,36 @@ def BioModel():
     # Run the AddAttributeRule tool
     arcpy.management.AddAttributeRule(csvname, name, "CALCULATION", script_expression, "EDITABLE", triggering_events, "", "", description, "", infield_FBI)
 
-    # Add attribute rule(CALCULATION) for sensitive organism
+    # Create attribute rule(CALCULATION) for Sensitive Organisms
     name3 = "SO_calculateRuleCategory"
     script_expression3 = 'if ($feature.Sensitive_Organisms_ > 20.9) {return "Above Average"} else if ($feature.Sensitive_Organisms_ > 0 && $feature.Sensitive_Organisms_ < 20.9 ) {return "Below Average"} else if ($feature.Sensitive_Organisms_ == 20.9 ) {return "Average"} else{return null}'
     triggering_events = "INSERT;UPDATE"
     description3 = "Populate Catogory Based on Value"
     # Run the AddAttributeRule tool
     arcpy.management.AddAttributeRule(csvname, name3, "CALCULATION", script_expression3, "EDITABLE", triggering_events, "", "", description3, "", infield_SO)
-
-    # Add attribute rule(CONSTRAINT) for Family Biotic Index
+    
+    ###Constraint rules, limit values to be entered
+    # Create attribute rule(CONSTRAINT) for Family Biotic Index
     name2 = "FBConstraintRule"
     script_expression2 = '$feature.FamilyBioticIndex_Value >= 0  && $feature.FamilyBioticIndex_Value <= 10'
     triggering_events = "INSERT;UPDATE"
-    description = "Constraint rule, prevent value out of range: Family Biotic Index Value range from 0 to 10"
+    description2 = "Constraint rule, prevent value from out of range: Family Biotic Index Value range from 0 to 10"
     subtype = "ALL"
     error_number = 2001
     error_message = "Invalid Family Biotic Index Value. Must be greater than or equal to 0; or less than or equal to 10."
     # Run the AddAttributeRule tool
-    arcpy.management.AddAttributeRule(csvname, name2, "CONSTRAINT", script_expression2, "EDITABLE", triggering_events, error_number, error_message, description, subtype)
+    arcpy.management.AddAttributeRule(csvname, name2, "CONSTRAINT", script_expression2, "EDITABLE", triggering_events, error_number, error_message, description2, subtype)
 
-    # Add attribute rule(CONSTRAINT) for sensitive organism
+    # Create attribute rule(CONSTRAINT) for sensitive organism
     name4 = "SOConstraintRule"
     script_expression4 = '$feature.Sensitive_Organisms_ >= 0 && $feature.Sensitive_Organisms_ <= 100'
     triggering_events = "INSERT;UPDATE"
-    description = "Constraint rule, prevent value out of range: 0-100"
+    description4 = "Constraint rule, prevent value from out of range: 0 - 100"
     subtype = "ALL"
     error_number2 = 2002
     error_message2 = "Invalid Sensitive Organism Value. Must be greater than or equal to 0; or less than and equal to 100."
     # Run the AddAttributeRule tool
-    arcpy.management.AddAttributeRule(csvname, name4, "CONSTRAINT", script_expression4, "EDITABLE", triggering_events, error_number2, error_message2, description, subtype)
+    arcpy.management.AddAttributeRule(csvname, name4, "CONSTRAINT", script_expression4, "EDITABLE", triggering_events, error_number2, error_message2, description4, subtype)
 
 # Add all feature classes and tables to the map display
 def GDBToMap():
