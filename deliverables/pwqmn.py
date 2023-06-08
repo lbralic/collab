@@ -43,12 +43,25 @@ myuselimitations = "My Use Limitations"
 
 # >>> Alter sharing preferences
 # Sharing options
-sharepublic = "PRIVATE"                 # Enter "PUBLIC" or "PRIVATE"
+sharepublic = "PUBLIC"                  # Enter "PUBLIC" or "PRIVATE"
 shareorg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
-sharegroup = ""                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
+sharegroup = "Kawartha Conservation Collaborative Project"                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
 # AGOL folder name
-foldertype = ""                         # Enter "Existing" to specify an existing folder
-foldername = ""                         # Enter the existing AGOL folder name
+foldertype = "Existing"                         # Enter "Existing" to specify an existing folder
+foldername = "Collab"                         # Enter the existing AGOL folder name
+
+# >>> Enter the URLS for the site photos
+StationList = {"Balsam Lake Outlet" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
+"Blackstock Creek" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
+"Burnt River" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
+"Cameron Lake Outlet" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
+"Gull River" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
+"Mariposa Brook" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
+"Nonquon River" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
+"Pigeon River" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
+"Scugog River Down" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
+"Scugog River Up" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
+"Sturgeon Lake Outlet" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg"}
 
 ########################################################################################
 
@@ -99,6 +112,16 @@ def PWQMNModel():
             field_list_delete.append(field.baseName)
     arcpy.management.DeleteField(PWQMN_Stations, drop_field=field_list_delete)
 
+    # Add photos to station points
+    print("\tAdding photos")
+    # Create a new text field
+    arcpy.management.AddField(PWQMN_raw, "Photo", "TEXT")
+    for station in StationList:
+        station_where = "BOW_SITE_DESC = " + "'" + station + "'"
+        PWQMN_SelectStation = arcpy.management.SelectLayerByAttribute(PWQMN_Stations, where_clause=station_where)
+        station_calc = "'" + StationList.get(station) + "'"
+        arcpy.management.CalculateField(PWQMN_SelectStation, "Photo", station_calc)
+
     # Create a TEST_CODE domain
     print("\tAdding domains")
     desc_ws = arcpy.Describe(ws)
@@ -126,6 +149,18 @@ def PWQMNModel():
     PWQMN_SelectNull = arcpy.management.SelectLayerByAttribute(PWQMN_raw, where_clause="TEST_CODE IS NULL And DESCRIPTION LIKE '%Nitrate%'")
     arcpy.management.CalculateField(PWQMN_SelectNull, field="TEST_CODE", expression="'NNOTUR'")[0]
 
+    # Create a year field
+    # Create a new short integer field
+    arcpy.management.AddField(PWQMN_raw, "Year", "SHORT")
+    # Populate the new field
+    arcpy.management.CalculateField(PWQMN_raw, field="Year", expression="!Sample_Date!.year")
+
+    # Create a month field
+    # Create a new short integer field
+    arcpy.management.AddField(PWQMN_raw, "Month", "SHORT")
+    # Populate the new field
+    arcpy.management.CalculateField(PWQMN_raw, field="Month", expression="!Sample_Date!.month")
+
     # Some of the Result records contain "<" signs, which causes the field to be interpreted as a text field
     # This causes issues when calculating averages in the ArcGIS Online Dashboard
     # Create a new Double field
@@ -149,6 +184,72 @@ def PWQMNModel():
     PWQMN_SelectPhos = arcpy.management.SelectLayerByAttribute(PWQMN_Data, where_clause="TEST_CODE = 'PPUT' And (UNITS = 'MILLIGRAM PER LITER' Or UNITS = 'mg/L')")
     arcpy.management.CalculateField(PWQMN_SelectPhos, field="Result", expression="!Result! * 1000")[0]
     arcpy.management.CalculateField(PWQMN_SelectPhos, field="UNITS", expression="'MICROGRAM PER LITER'")[0]
+
+    # Add a pass/fail field
+    arcpy.management.AddField(PWQMN_raw, "ThresholdPass", "TEXT")
+    # Total Phosphorus
+    PWQMN_SelectTP = arcpy.management.SelectLayerByAttribute(PWQMN_Data, where_clause="TEST_CODE = 'PPUT'")
+    threshold_expression_TP = "calcThresholdTP(!Result_!)"
+    codeblock_TP = """
+def calcThresholdTP(value):
+    if value <= 30:
+        return "Pass"
+    if value > 30:
+        return "Fail"
+    else:
+        return "N/A" """
+    arcpy.management.CalculateField(PWQMN_SelectTP, "ThresholdPass", threshold_expression_TP, code_block = codeblock_TP)
+    # Chloride
+    PWQMN_SelectChlor = arcpy.management.SelectLayerByAttribute(PWQMN_Data, where_clause="TEST_CODE = 'CLIDUR'")
+    threshold_expression_Chlor = "calcThresholdChlor(!Result_!)"
+    codeblock_Chlor = """
+def calcThresholdChlor(value):
+    if value <= 120:
+        return "Pass"
+    if value > 120:
+        return "Fail"
+    else:
+        return "N/A" """
+    arcpy.management.CalculateField(PWQMN_SelectChlor, "ThresholdPass", threshold_expression_Chlor, code_block = codeblock_Chlor)
+    # Dissolved Oxygen
+    PWQMN_SelectDO = arcpy.management.SelectLayerByAttribute(PWQMN_Data, where_clause="TEST_CODE = 'DO'")
+    threshold_expression_DO = "calcThresholdDO(!Result_!)"
+    codeblock_DO = """
+def calcThresholdDO(value):
+    if value <= 6:
+        return "Pass"
+    if value > 6:
+        return "Fail"
+    else:
+        return "N/A" """
+    arcpy.management.CalculateField(PWQMN_SelectDO, "ThresholdPass", threshold_expression_DO, code_block = codeblock_DO)
+    # Suspended Solids
+    PWQMN_SelectSS = arcpy.management.SelectLayerByAttribute(PWQMN_Data, where_clause="TEST_CODE = 'RSP '")
+    threshold_expression_SS = "calcThresholdSS(!Result_!)"
+    codeblock_SS = """
+def calcThresholdSS(value):
+    if value <= 30:
+        return "Pass"
+    if value > 30:
+        return "Fail"
+    else:
+        return "N/A" """
+    arcpy.management.CalculateField(PWQMN_SelectSS, "ThresholdPass", threshold_expression_SS, code_block = codeblock_SS)
+    # Nitrate
+    PWQMN_SelectNit = arcpy.management.SelectLayerByAttribute(PWQMN_Data, where_clause="TEST_CODE = 'NNOTUR'")
+    threshold_expression_Nit = "calcThresholdNit(!Result_!)"
+    codeblock_Nit = """
+def calcThresholdNit(value):
+    if value <= 3:
+        return "Pass"
+    if value > 3:
+        return "Fail"
+    else:
+        return "N/A" """
+    arcpy.management.CalculateField(PWQMN_SelectNit, "ThresholdPass", threshold_expression_Nit, code_block = codeblock_Nit)
+    # Delete null rows
+    PWQMN_SelectNullRows = arcpy.management.SelectLayerByAttribute(PWQMN_Data, where_clause="ThresholdPass is null")
+    arcpy.management.DeleteRows(PWQMN_SelectNullRows)
 
     print("\tDeleting fields")
     # Delete repetitive/empty fields
