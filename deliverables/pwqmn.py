@@ -43,12 +43,12 @@ myuselimitations = "My Use Limitations"
 
 # >>> Alter sharing preferences
 # Sharing options
-sharepublic = "PUBLIC"                  # Enter "PUBLIC" or "PRIVATE"
+sharepublic = "PRIVATE"                  # Enter "PUBLIC" or "PRIVATE"
 shareorg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
-sharegroup = "Kawartha Conservation Collaborative Project"                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
+sharegroup = ""                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
 # AGOL folder name
-foldertype = "Existing"                         # Enter "Existing" to specify an existing folder
-foldername = "Collab"                         # Enter the existing AGOL folder name
+foldertype = ""                         # Enter "Existing" to specify an existing folder
+foldername = ""                         # Enter the existing AGOL folder name
 
 # >>> Enter the URLS for the site photos
 StationList = {"Balsam Lake Outlet" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
