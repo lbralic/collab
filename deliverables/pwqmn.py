@@ -1,6 +1,17 @@
-# PWQMNModel() >> PWQMN data processing model
-# GDBToMap() >> Add all feature classes and tables to the map display
-# AGOLUpload() >> Upload all layers and tables to ArcGIS Online
+# Created by: Lucija Bralic, Yingjia Ye, and Becca Carmichael
+# Date last updated: June 8, 2023
+
+# Purpose:
+# Processes the PWQMN data and uploads it to ArcGIS Online (AGOL) as a feature layer.
+# The feature layer will contain a station point layer and a data table.
+#   PWQMNModel() >> PWQMN data processing model
+#   GDBToMap() >> Add all feature classes and tables to the map display
+#   GOLUpload() >> Upload all layers and tables to AGOL
+
+# Instructions:
+#   Under "Required inputs, enter the file/folder paths"
+#   Under "Optional inputs, enter the name of the feature layer to be uploaded to AGOL,
+#       the summary/tags/etc., and the sharing preferences.
 
 #############################################
 #####               INPUTS              #####
@@ -8,7 +19,7 @@
 
 ############## Required inputs ##############
 
-# >>> File paths
+# >>> File/folder paths
 # Path to PWQMN Excel file
 input_PWQMN_table = r"C:\Data\2023-04-11_PWQMNdata_GISDashboard.xlsx"
 # Path to geodatabase
@@ -51,6 +62,7 @@ coordsys = "PROJCS[\"NAD_1983_CSRS_UTM_Zone_17N\",GEOGCS[\"GCS_North_American_19
 arcpy.env.overwriteOutput = True
 
 # Remove layers and tables from map view
+print(">> Removing existing layers from map view...")
 aprx = arcpy.mp.ArcGISProject(aprx_path)
 m = aprx.listMaps()[0] 
 table_list = m.listTables()
