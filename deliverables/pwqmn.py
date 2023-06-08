@@ -157,9 +157,32 @@ def PWQMNModel():
 
     # Create a month field
     # Create a new short integer field
-    arcpy.management.AddField(PWQMN_raw, "Month", "SHORT")
+    arcpy.management.AddField(PWQMN_raw, "Month", "TEXT")
     # Populate the new field
     arcpy.management.CalculateField(PWQMN_raw, field="Month", expression="!Sample_Date!.month")
+
+    # Create Month_domain
+    # Check if the domain exists
+    domainname2 = "Month_domain"
+    if domainname2 not in desc_domains:
+        # Create Domain
+        arcpy.management.CreateDomain(ws, domainname2, field_type="TEXT")[0]
+        # Add Coded Values To Domain
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="1", code_description="Jan")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="2", code_description="Feb")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="3", code_description="Mar")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="4", code_description="Apr")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="5", code_description="May")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="6", code_description="June")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="7", code_description="July")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="8", code_description="Aug")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="9", code_description="Sept")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="10", code_description="Oct")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="11", code_description="Nov")[0]
+        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="12", code_description="Dec")[0]
+
+    # Assign Domain To Field
+    arcpy.management.AssignDomainToField(PWQMN_raw, field_name="Month", domain_name="Month_domain")[0]
 
     # Some of the Result records contain "<" signs, which causes the field to be interpreted as a text field
     # This causes issues when calculating averages in the ArcGIS Online Dashboard
@@ -269,15 +292,6 @@ def GDBToMap():
     lyr = arcpy.mp.LayerFile(lyr_path)
     m.addLayer(lyr)
     
-    # # Change symbology
-    # print("\tChanging Symbology")
-    # lyr_select = m.listLayers()[0]
-    # sym = lyr_select.symbology
-    # sym.renderer.symbol.color = {'RGB' : [0, 92, 230, 100]}
-    # sym.renderer.symbol.outlineColor = {'RGB' : [0, 0, 0, 100]}
-    # sym.renderer.symbol.size = 10
-    # lyr_select.symbology = sym
-    
     # Add data (table)
     print("\tAdding tables")
     table = "PWQMN_Data"
@@ -375,3 +389,4 @@ if __name__ == '__main__':
         AGOLUpload()
 
 print("Done")
+
