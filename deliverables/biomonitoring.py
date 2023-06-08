@@ -3,7 +3,7 @@
 # Purpose:
 # Processes the Biomonitoring data and uploads it to ArcGIS Online (AGOL) as a feature layer.
 # The feature layer will contain a station point layer and a data table.
-#   BioModel() >> PWQMN data processing model
+#   BioModel() >> Biomonitoring data processing model
 #   GDBToMap() >> Add all feature classes and tables to the map display
 #   GOLUpload() >> Upload all layers and tables to AGOL
 
