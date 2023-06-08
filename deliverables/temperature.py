@@ -75,19 +75,19 @@ def xlsx_sheets_to_csv(path_to_excel_file, output_folder):
 def GDBToMap(fcs, tables):
     print(">> Adding data to map...")
     # Add stations (point layer)
-    fc = "TemperatureMonitoringPoints"
-    arcpy.management.MakeFeatureLayer(fc, fc)
-    lyr_name = "{}.lyrx".format(fc)
-    arcpy.management.SaveToLayerFile(fc, lyr_name)
-    lyr_path = os.path.join(os.path.dirname(ws), lyr_name)
-    lyr = arcpy.mp.LayerFile(lyr_path)
-    m.addLayer(lyr)
+    for fc in fcs:
+        arcpy.management.MakeFeatureLayer(fc, fc)
+        lyr_name = "{}.lyrx".format(fc)
+        arcpy.management.SaveToLayerFile(fc, lyr_name)
+        lyr_path = os.path.join(os.path.dirname(ws), lyr_name)
+        lyr = arcpy.mp.LayerFile(lyr_path)
+        m.addLayer(lyr)
     # Add data (table)
-    table = "TemperatureMonitoringData"
-    table_path = os.path.join(ws, table)
-    addTab = arcpy.mp.Table(table_path)
-    m.addTable(addTab)
-    aprx.save()
+    for table in tables:
+        table_path = os.path.join(ws, table)
+        addTab = arcpy.mp.Table(table_path)
+        m.addTable(addTab)
+        aprx.save()
 
 # Upload all layers and tables to ArcGIS Online
 def AGOLUpload(service_name):  # service_name is the name of the feature layer to be uploaded to AGOL
@@ -265,4 +265,5 @@ if __name__ == '__main__':
     with arcpy.EnvManager(outputCoordinateSystem = coordsys, scratchWorkspace = ws, workspace = ws):
         TempModel(data_names_for_sheet_names)
         GDBToMap(["TemperatureMonitoringPoints"], ["TemperatureMonitoringData"])
-        AGOLUpload("Kawartha Conservation Temperature Monitoring Data")
+        # AGOLUpload("Kawartha Conservation Temperature Monitoring Data")
+        AGOLUpload("Temperature Monitoring")
