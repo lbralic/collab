@@ -1,4 +1,3 @@
-# Created by: Lucija Bralic (Fleming College)
 # Date last updated: June 8, 2023
 
 # Purpose:
