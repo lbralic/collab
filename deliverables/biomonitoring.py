@@ -84,7 +84,7 @@ def BioModel():
     infield_SO="Sensitive_Organisms_Category"
     infield_FBI="Family_Biotic_Index_Category"
     # coded value dictionary
-    domDict_SO={"A":"Above Average", "B":"Below Average"}
+    domDict_SO={"A":"Above Average", "B":"Below Average", "AVG":"Average"}
     domDict_FBI={"E":"Excellent", "VG":"Very Good", "G":"Good","F":"Fair","FP":"Fairly Poor","P":"Poor","VP":"Very Poor"}
     # Check if the domain exists
     if domainname_SO not in desc_domains:
