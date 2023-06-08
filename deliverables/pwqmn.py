@@ -1,4 +1,4 @@
-# Created by: Lucija Bralic, Yingjia Ye, and Becca Carmichael (Fleming College)
+# Created by: Lucija Bralic (Fleming College)
 # Date last updated: June 8, 2023
 
 # Purpose:
