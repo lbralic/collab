@@ -1,6 +1,17 @@
-# BMModel() >> Biomonitoring data processing model
-# GDBToMap() >> Add all feature classes and tables to the map display
-# AGOLUpload() >> Upload all layers and tables to ArcGIS Online
+# Created by: Yingjia Ye, Lucija Bralic (Fleming College)
+# Date last updated: June 8, 2023
+
+# Purpose:
+# Processes the Biomonitoring data and uploads it to ArcGIS Online (AGOL) as a feature layer.
+# The feature layer will contain a station point layer and a data table.
+#   BioModel() >> PWQMN data processing model
+#   GDBToMap() >> Add all feature classes and tables to the map display
+#   GOLUpload() >> Upload all layers and tables to AGOL
+
+# Instructions:
+#   Under "Required inputs, enter the file/folder paths"
+#   Under "Optional inputs, enter the name of the feature layer to be uploaded to AGOL,
+#       the summary/tags/etc., and the sharing preferences.
 
 #############################################
 #####               INPUTS              #####
@@ -8,8 +19,8 @@
 
 ############## Required inputs ##############
 
-# >>> File paths
-# Path to raw Biomonitoring .xlsx file
+# >>> File/folder paths
+# Path to Biomonitoring .xlsx file
 input_BM_table = r"C:\Data\Biomonitoring Data for Dashboard)-June2,2023.xlsx"
 # Path to geodatabase
 ws = r"C:\Project\Project.gdb"
@@ -51,6 +62,7 @@ coordsys = "PROJCS[\"NAD_1983_CSRS_UTM_Zone_17N\",GEOGCS[\"GCS_North_American_19
 arcpy.env.overwriteOutput = True
 
 # Remove layers and tables from map view
+print(">> Removing existing layers from map view...")
 aprx = arcpy.mp.ArcGISProject(aprx_path)
 m = aprx.listMaps()[0] 
 table_list = m.listTables()
@@ -65,6 +77,7 @@ def BioModel():
     print(">> Processing the Biomonitoring data...")
 
     # Importing data(xlsx to csv):
+    print("\tConverting the Excel file to .csv")
     # csv file path
     csvname = "Biomonitoring_Data"
     csvname_ext = csvname + ".csv"
@@ -83,6 +96,7 @@ def BioModel():
     arcpy.conversion.ExportTable(csvfilepath, csvname)
 
     # Biomonitoring stations:
+    print("\tCreating station points")
     # Convert the table to a point feature class
     BM_Stations = "Biomonitoring_Stations"
     arcpy.management.XYTableToPoint(csvname, BM_Stations, "Easting", "Northing", "", coordsys)
@@ -97,6 +111,7 @@ def BioModel():
     arcpy.management.DeleteField(BM_Stations, drop_field=field_list_delete)
 
     # Domains:
+    print("\tCreating domains")
     # Create coded domain
     desc_ws = arcpy.Describe(ws)
     desc_domains = desc_ws.domains
@@ -131,6 +146,7 @@ def BioModel():
     arcpy.management.DeleteField(csvname, ["Family_Biotic_Index_Value", "Field1"])
     
     ###Calculation rules, automate category based on value
+    print("\tCreating attribute rules")
     # Create Global ID for attribute rules
     arcpy.management.AddGlobalIDs(csvname)
     # Create attribute rule(CALCULATION) for Family Biotic Index
@@ -175,8 +191,7 @@ def BioModel():
 # Add all feature classes and tables to the map display
 def GDBToMap():
     print(">> Adding data to map...")
-    # aprx = arcpy.mp.ArcGISProject(aprx_path)
-    # m = aprx.listMaps()[0]
+    print("\tAdding stations")
     # Add stations (point layer)
     fc = "Biomonitoring_Stations"
     arcpy.management.MakeFeatureLayer(fc, fc)
@@ -186,6 +201,7 @@ def GDBToMap():
     lyr = arcpy.mp.LayerFile(lyr_path)
     m.addLayer(lyr)
     # Add data (table)
+    print("\tAdding table")
     table = "Biomonitoring_Data"
     table_path = os.path.join(ws, table)
     addTab = arcpy.mp.Table(table_path)
@@ -206,7 +222,7 @@ def AGOLUpload():
     sd_output_filename = os.path.join(outdir, sd_filename)
 
     # Delete existing files
-    print("Deleting existing files...")
+    print("\tDeleting existing files...")
     if os.path.exists(sddraft_output_filename):
         os.remove(sddraft_output_filename)
     if os.path.exists(sd_output_filename):
@@ -241,7 +257,7 @@ def AGOLUpload():
     sddraft.exportToSDDraft(sddraft_output_filename)
 
     # Stage Service
-    print("Start Staging")
+    print("\tStart Staging")
     # Parameters: arcpy.server.StageService(in_service_definition_draft, out_service_definition, {staging_version})
     arcpy.server.StageService(sddraft_output_filename, sd_output_filename)
 
@@ -255,12 +271,12 @@ def AGOLUpload():
     # AGOL folder name
     inFolderType = foldertype
     inFolderName = foldername
-    print("Start Uploading")
+    print("\tStart Uploading")
 
     # Parameters: arcpy.server.UploadServiceDefinition(in_sd_file, in_server, {in_service_name}, {in_cluster}, {in_folder_type}, {in_folder}, {in_startupType}, {in_override}, {in_my_contents}, {in_public}, {in_organization}, {in_groups})
     arcpy.server.UploadServiceDefinition(sd_output_filename, server_type, "", "", inFolderType, inFolderName, "", inOverride, "", inSharePublic, inShareOrg, inShareGroup)
 
-    print("Finish Publishing")
+    print("\tFinish Publishing")
 
     # Delete tables and layers from the map view
     table_list = m.listTables()
