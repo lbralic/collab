@@ -9,8 +9,8 @@
 #   GOLUpload() >> Upload all layers and tables to AGOL
 
 # Instructions:
-#   Under "Required inputs, enter the file/folder paths"
-#   Under "Optional inputs, enter the name of the feature layer to be uploaded to AGOL,
+#   Under "Required inputs", enter the file/folder paths.
+#   Under "Optional inputs", enter the name of the feature layer to be uploaded to AGOL,
 #       the summary/tags/etc., and the sharing preferences.
 
 #############################################
