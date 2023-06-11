@@ -20,15 +20,15 @@
 
 # >>> File/folder paths
 # Path to the folder that contains the TempMonitoring Excel file
-input_Temp_Table = r"C:\Data"
+input_Temp_Table = r"C:\Winter2023\COLLAB\Data"
 # Path to the output TempMonitoring folder - the folder where the csv files are placed
-output_Temp_Table = r"C:\Output"
+output_Temp_Table = r"C:\Winter2023\COLLAB\TempDB"
 # Path to geodatabase 
-ws = r"C:\Project\Project.gdb"
+ws = r"C:\Winter2023\COLLAB\TempDB\TemperatureMonitoringProject\TemperatureMonitoringProject.gdb"
 # Path to .aprx file 
-aprx_path = r"C:\Project\Project.aprx"
+aprx_path = r"C:\Winter2023\COLLAB\TempDB\TemperatureMonitoringProject\TemperatureMonitoringProject.aprx"
 # Empty output folder for the service definition drafts
-outdir = r"C:\Output"
+outdir = r"C:\Winter2023\COLLAB\TempDB\TemperatureMonitoringProject\Output"
 
 # >>> Enter the names of the excel files/ sheets if they are different  
 # Change the keys (left hand side) of this dictionary to match the names of the sheets in the .xlsx file to the names of the tables (right hand side)
