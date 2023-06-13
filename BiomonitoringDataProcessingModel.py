@@ -85,7 +85,7 @@ def BioModel():
     arcpy.AddField_management(csvname, "FamilyBioticIndex_Value", "DOUBLE", field_length = 20)
     arcpy.management.CalculateField(csvname, "FamilyBioticIndex_Value", "!Family_Biotic_Index_Value!")
     # delete original field **
-    arcpy.management.DeleteField(csvname, "Family_Biotic_Index_Value")
+    arcpy.management.DeleteField(csvname, ["Family_Biotic_Index_Value","Field1"])
 
     # Attribute Rules
     arcpy.management.AddGlobalIDs(csvname)
