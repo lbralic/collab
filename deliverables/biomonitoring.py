@@ -93,6 +93,8 @@ def BioModel():
     df.to_csv(csvfilepath, encoding = 'utf-8-sig')
     # copy the csv file to geodatabase
     arcpy.conversion.ExportTable(csvfilepath, csvname)
+    # convert the table to a point feature class
+    arcpy.management.XYTableToPoint(csvname, csvname, "Easting", "Northing", "", coordsys)
 
     # Biomonitoring stations:
     print("\tCreating station points")
