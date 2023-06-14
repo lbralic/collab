@@ -3,7 +3,7 @@
 # AGOLUpload() >> Upload all layers and tables to ArcGIS Online
 
 import arcpy, os, pandas as pd
-
+# Change the path for own use
 # Path to raw Biomonitoring .xlsx file
 input_BM_table = r"C:\Biomonitoring Data for Dashboard)-June2,2023.xlsx"
 # Path to geodatabase
@@ -27,14 +27,14 @@ def BioModel():
     csvname_ext = csvname + ".csv"
     csvfilepath = os.path.join(outdir, csvname_ext)
     # Reading an excel file
-    excelFile = pd.read_excel (input_BM_table, sheet_name="Biomonitoring")
+    excelFile = pd.read_excel (input_BM_table, sheet_name = "Biomonitoring")
     # Converting excel file into CSV file
-    excelFile.to_csv(csvfilepath, index = None, header=True)
+    excelFile.to_csv(csvfilepath, index = None, header = True)
     # Reading and Converting the output csv file into a dataframe object
     df = pd.DataFrame(pd.read_csv(csvfilepath))
     # Displaying the dataframe object
     df.columns=df.columns.str.replace(' ', '_') # replace space with underscore
-    df.columns = df.columns.str.replace(r'\W+', '', regex=True) # delete non-word character
+    df.columns = df.columns.str.replace(r'\W+', '', regex = True) # delete non-word character
     df.to_csv(csvfilepath, encoding='utf-8-sig')
     # copy the csv file to geodatabase
     arcpy.conversion.ExportTable(csvfilepath, csvname)
