@@ -106,7 +106,7 @@ def BioModel():
     field_list = arcpy.ListFields(BM_Stations)
     field_list_delete = []
     for field in field_list:
-        if field.baseName != "OBJECTID" and field.baseName != "Shape" and field.baseName != "Watercourse" and field.baseName != "Site_Code" and field.baseName != "Site_Type" and field.baseName !="Date_Sampled" and field.baseName != "Habitat_Type":
+        if field.baseName != "OBJECTID" and field.baseName != "Shape" and field.baseName != "Watercourse" and field.baseName != "Site_Code" and field.baseName != "Site_Type" and field.baseName != "Habitat_Type":
             field_list_delete.append(field.baseName)
     arcpy.management.DeleteField(BM_Stations, drop_field=field_list_delete)
 
