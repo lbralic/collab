@@ -177,7 +177,7 @@ def BioModel():
     # delete field **
     arcpy.management.DeleteField(csvname, ["Family_Biotic_Index_Value", "Field1"])
 
-    #**in Arcade, Null returns 0. When inserting a new row, and when FamilyBioticIndex Value field is null, it will return 'Excellent' in the category field. An option to solve this is to exclude 0 in the following calculation rule. 
+    #**in Arcade, Null returns 0. When inserting a new row, and when FamilyBioticIndex Value field is Null, it will return 'Excellent' in the category field. An option to solve this is excluding 0 in the following calculation rule. eg. if ($feature.FamilyBioticIndex_Value > 0)
     ###Calculation rules, automate category based on value
     print("\tCreating attribute rules")
     # Create Global ID for attribute rules
