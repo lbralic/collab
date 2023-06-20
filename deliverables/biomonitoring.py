@@ -51,23 +51,23 @@ foldertype = ""                         # Enter "Existing" to specify an existin
 foldername = ""                         # Enter the existing AGOL folder name
 
 # >>> Enter the URLS for the site photos {Site_Code : URL}
-StationList = {"ASD01" : "https://fleming.maps.arcgis.com/home/item.html?id=fd7803f0164a4a7aa3d32a249dadd2d6",
-              "BMI_PR-001" : "https://fleming.maps.arcgis.com/home/item.html?id=2956d805298349d6a60634ba0b5f6047",
-              "CC1" : "https://fleming.maps.arcgis.com/home/item.html?id=e63f5ffddc3f45d7bb8d96543db4a2c4",
-              "CRL1" : "https://fleming.maps.arcgis.com/home/item.html?id=760c792e709f4ad1ba70569bc483b33f",
-              "DIST01" : "https://fleming.maps.arcgis.com/home/item.html?id=fa763fd84f17416fa078a9171f40e91b",
-              "FEN01" : "https://fleming.maps.arcgis.com/home/item.html?id=82e9a95598544fea9b1d8fdd45141877",
-              "JC2" : "https://fleming.maps.arcgis.com/home/item.html?id=d5bb9198e0524c57b33375cd13287f35",
-              "KENREID01" : "https://fleming.maps.arcgis.com/home/item.html?id=03c43a512af84bc7adba60a86cc5da7a",
-              "OME01" : "https://fleming.maps.arcgis.com/home/item.html?id=bc55c67d9683455d8998c8cefd46e43d",
-              "PL234-22" : "https://fleming.maps.arcgis.com/home/item.html?id=d1efe0cc5b744264bcbb5d77462dbb45",
-              "PLMP-01" : "https://fleming.maps.arcgis.com/home/item.html?id=deaa59f6cd7a4324a94a9caaaf741afc",
-              "SIN01" : "https://fleming.maps.arcgis.com/home/item.html?id=19e010dd7b60450e96c0ef732bffbd95",
-              "SUC02" : "https://fleming.maps.arcgis.com/home/item.html?id=112a7451740342c382643613e5e64463",
-              "UEC6" : "https://fleming.maps.arcgis.com/home/item.html?id=0ff553ef18cc43b9855054912e128ab4",
-              "URB-020" : "https://fleming.maps.arcgis.com/home/item.html?id=df7f7b68cb52431c9390467daad0e6a7",
-              "URB-030" : "https://fleming.maps.arcgis.com/home/item.html?id=3f279459e04640958d96f1262ad85d10",
-              "URB-088" : "https://fleming.maps.arcgis.com/home/item.html?id=ba293352e117499782cf19571357b77d",
+StationList = {"ASD01" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/fd7803f0164a4a7aa3d32a249dadd2d6/data",
+              "BMI_PR-001" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/2956d805298349d6a60634ba0b5f6047/data",
+              "CC1" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/e63f5ffddc3f45d7bb8d96543db4a2c4/data",
+              "CRL1" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/760c792e709f4ad1ba70569bc483b33f/data",
+              "DIST01" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/fa763fd84f17416fa078a9171f40e91b/data",
+              "FEN01" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/82e9a95598544fea9b1d8fdd45141877/data",
+              "JC2" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/d5bb9198e0524c57b33375cd13287f35/data",
+              "KENREID01" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/03c43a512af84bc7adba60a86cc5da7a/data",
+              "OME01" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/bc55c67d9683455d8998c8cefd46e43d/data",
+              "PL234-22" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/d1efe0cc5b744264bcbb5d77462dbb45/data",
+              "PLMP-01" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/deaa59f6cd7a4324a94a9caaaf741afc/data",
+              "SIN01" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/19e010dd7b60450e96c0ef732bffbd95/data",
+              "SUC02" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/112a7451740342c382643613e5e64463/data",
+              "UEC6" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/0ff553ef18cc43b9855054912e128ab4/data",
+              "URB-020" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/df7f7b68cb52431c9390467daad0e6a7/data",
+              "URB-030" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/3f279459e04640958d96f1262ad85d10/data",
+              "URB-088" : "https://fleming.maps.arcgis.com/sharing/rest/content/items/ba293352e117499782cf19571357b77d/data",
               }
 
 
@@ -176,9 +176,12 @@ def BioModel():
     arcpy.management.CalculateField(csvname, "FamilyBioticIndex_Value", "!Family_Biotic_Index_Value!")
     # delete field **
     arcpy.management.DeleteField(csvname, ["Family_Biotic_Index_Value", "Field1"])
-
-    #**in Arcade, Null returns 0. When inserting a new row, and when FamilyBioticIndex Value field is Null, it will return 'Excellent' in the category field. An option to solve this is excluding 0 in the following calculation rule. eg. if ($feature.FamilyBioticIndex_Value > 0)
+  
     ###Calculation rules, automate category based on value
+    #** In Arcade, Null returns 0. When inserting a new row, and when FamilyBioticIndex Value field is Null, it will return 'Excellent' in the category field. 
+    #** An option to solve this is excluding 0 in the following calculation rule. eg. if ($feature.FamilyBioticIndex_Value > 0)
+    #** Or change the wrong field back to Null manually
+    
     print("\tCreating attribute rules")
     # Create Global ID for attribute rules
     arcpy.management.AddGlobalIDs(csvname)
