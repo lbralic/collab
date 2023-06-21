@@ -148,8 +148,8 @@ def BioModel():
     desc_ws = arcpy.Describe(ws)
     desc_domains = desc_ws.domains
     # Assign domain name
-    domainname_FBI = "FBIndexCat"
-    domainname_SO="SenOrgCat"
+    domainname_FBI = "FBIndex_domain"
+    domainname_SO="Sensitiveorganism_domain"
     infield_SO="Sensitive_Organisms_Category"
     infield_FBI="Family_Biotic_Index_Category"
     # coded value dictionary
