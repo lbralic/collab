@@ -1,16 +1,34 @@
-# Date last updated: June 8, 2023
+### Date last updated: June 22, 2023
 
-# Purpose:
+### Purpose
 # Processes the PWQMN data and uploads it to ArcGIS Online (AGOL) as a feature layer.
 # The feature layer will contain a station point layer and a data table.
 #   PWQMNModel() >> PWQMN data processing model
 #   GDBToMap() >> Add all feature classes and tables to the map display
 #   GOLUpload() >> Upload all layers and tables to AGOL
 
-# Instructions:
-#   Under "Required inputs", enter the file/folder paths.
+### Instructions
+#   Under "Required inputs", enter the file/folder paths
 #   Under "Optional inputs", enter the name of the feature layer to be uploaded to AGOL,
-#       the summary/tags/etc., and the sharing preferences.
+#       the summary/tags/etc., the sharing preferences, and the station photos.
+
+### Notes
+    # Parameter codes:
+    # Total Phosphorus - 'PPUT'
+    # Chloride - 'CLIDUR'
+    # Nitrate - 'NNOTUR'
+    # Suspended Solids - 'RSP ' **contains a space at the end
+    # Dissolved Oxygen - 'DO'
+    # Temperature - 'FWTEMP'
+    # Conductivity - 'CONDAM'
+
+    # Thresholds:
+    # Total Phosphorus = < 30 µg/L (0.03 mg/L)
+    # Chloride = < 120 mg/L
+    # Dissolved Oxygen = > 6.0 mg/L
+    # Total Suspended Solids = < 30 mg/L
+    # Nitrate = < 3.0 mg/L
+
 
 #############################################
 #####               INPUTS              #####
@@ -20,19 +38,18 @@
 
 # >>> File/folder paths
 # Path to PWQMN Excel file
-input_PWQMN_table = r"C:\Data\2023-04-11_PWQMNdata_GISDashboard.xlsx"
+input_PWQMN_table = r"C:\Deliverables\Data\2023-04-11_PWQMNdata_GISDashboard.xlsx"
 # Path to geodatabase
-ws = r"C:\Project\Project.gdb"
+ws = r"C:\Deliverables\Project\Project.gdb"
 # Path to .aprx file
-aprx_path = r"C:\Project\Project.aprx"
+aprx_path = r"C:\Deliverables\Project\Project.aprx"
 # Empty output folder for the service definition drafts
-outdir = r"C:\Output"
-
+outdir = r"C:\Deliverables\Output"
 
 ############## Optional inputs ##############
 
 # >>> Input the name of the feature layer to be uploaded to AGOL
-service_name = "Kawartha Conservation PWQMN Data"
+service_name = "Kawartha Conservation PWQMN Data test"
 
 # >>> Enter the summary, tags, etc. that will appear on AGOL
 mysummary = "My Summary"
@@ -44,11 +61,11 @@ myuselimitations = "My Use Limitations"
 # >>> Alter sharing preferences
 # Sharing options
 sharepublic = "PRIVATE"                  # Enter "PUBLIC" or "PRIVATE"
-shareorg = "NO_SHARE_ORGANIZATION"      # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
+shareorg = "NO_SHARE_ORGANIZATION"         # Enter "SHARE_ORGANIZATION" or "NO_SHARE_ORGANIZATION"
 sharegroup = ""                         # Enter the name of the group(s): "My Group" or ["My Group 1", "My Group 2", ...]
 # AGOL folder name
-foldertype = ""                         # Enter "Existing" to specify an existing folder
-foldername = ""                         # Enter the existing AGOL folder name
+foldertype = "Existing"                         # Enter "Existing" to specify an existing folder
+foldername = "Collab"                         # Enter the existing AGOL folder name
 
 # >>> Enter the URLS for the site photos
 StationList = {"Balsam Lake Outlet" : "https://www.kawarthaconservation.com/en/images/structure/news_avatar.jpg",
@@ -132,14 +149,11 @@ def PWQMNModel():
         # Create Domain
         arcpy.management.CreateDomain(ws, domainname, field_type="TEXT")[0]
         # Add Coded Values To Domain
-        arcpy.management.AddCodedValueToDomain(ws, domainname, code="PPUT", code_description="Total Phosphorus")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname, code="CLIDUR", code_description="Chloride")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname, code="NNOTUR", code_description="Nitrate")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname, code="RSP ", code_description="Suspended Solids")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname, code="RSP", code_description="Suspended Solids")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname, code="DO", code_description="Dissolved Oxygen")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname, code="FWTEMP", code_description="Temperature")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname, code="CONDAM", code_description="Conductivity")[0]
+        coded_vals = {"PPUT":"Total Phosphorus", "CLIDUR":"Chloride", "NNOTUR":"Nitrate", "RSP ":"Suspended Solids",
+                      "DO": "Dissolved Oxygen", "FWTEMP":"Temperature", "CONDAM":"Conductivity"}
+        for code in coded_vals:
+            code_desc = coded_vals.get(code)
+            arcpy.management.AddCodedValueToDomain(ws, domainname, code=code, code_description=code_desc)
 
     # Assign Domain To Field
     arcpy.management.AssignDomainToField(PWQMN_raw, field_name="TEST_CODE", domain_name="TESTCODE_domain")[0]
@@ -157,7 +171,7 @@ def PWQMNModel():
 
     # Create a month field
     # Create a new short integer field
-    arcpy.management.AddField(PWQMN_raw, "Month", "TEXT")
+    arcpy.management.AddField(PWQMN_raw, "Month", "SHORT")
     # Populate the new field
     arcpy.management.CalculateField(PWQMN_raw, field="Month", expression="!Sample_Date!.month")
 
@@ -166,23 +180,16 @@ def PWQMNModel():
     domainname2 = "Month_domain"
     if domainname2 not in desc_domains:
         # Create Domain
-        arcpy.management.CreateDomain(ws, domainname2, field_type="TEXT")[0]
+        arcpy.management.CreateDomain(ws, domainname2, field_type="SHORT")[0]
         # Add Coded Values To Domain
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="1", code_description="Jan")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="2", code_description="Feb")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="3", code_description="Mar")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="4", code_description="Apr")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="5", code_description="May")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="6", code_description="June")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="7", code_description="July")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="8", code_description="Aug")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="9", code_description="Sept")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="10", code_description="Oct")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="11", code_description="Nov")[0]
-        arcpy.management.AddCodedValueToDomain(ws, domainname2, code="12", code_description="Dec")[0]
+        coded_vals2 = {"1":"Jan", "2":"Feb", "3":"Mar", "4":"Apr", "5":"May", "6":"June",
+                      "7": "July", "8":"Aug", "9":"Sept", "10":"Oct", "11":"Nov", "12":"Dec"}
+        for code2 in coded_vals2:
+            code_desc2 = coded_vals2.get(code2)
+            arcpy.management.AddCodedValueToDomain(ws, domainname2, code=code2, code_description=code_desc2)
 
     # Assign Domain To Field
-    arcpy.management.AssignDomainToField(PWQMN_raw, field_name="Month", domain_name="Month_domain")[0]
+    arcpy.management.AssignDomainToField(PWQMN_raw, field_name="Month", domain_name=domainname2)[0]
 
     # Some of the Result records contain "<" signs, which causes the field to be interpreted as a text field
     # This causes issues when calculating averages in the ArcGIS Online Dashboard
@@ -240,9 +247,9 @@ def calcThresholdChlor(value):
     codeblock_DO = """
 def calcThresholdDO(value):
     if value <= 6:
-        return "Pass"
-    if value > 6:
         return "Fail"
+    if value > 6:
+        return "Pass"
     else:
         return "N/A" """
     arcpy.management.CalculateField(PWQMN_SelectDO, "ThresholdPass", threshold_expression_DO, code_block = codeblock_DO)
@@ -270,13 +277,13 @@ def calcThresholdNit(value):
     else:
         return "N/A" """
     arcpy.management.CalculateField(PWQMN_SelectNit, "ThresholdPass", threshold_expression_Nit, code_block = codeblock_Nit)
-    # Delete null rows
-    PWQMN_SelectNullRows = arcpy.management.SelectLayerByAttribute(PWQMN_Data, where_clause="ThresholdPass is null")
+    # Delete null rows, excluding Conductivity
+    PWQMN_SelectNullRows = arcpy.management.SelectLayerByAttribute(PWQMN_Data, where_clause="(ThresholdPass is null) And (TEST_CODE <> 'CONDAM')")
     arcpy.management.DeleteRows(PWQMN_SelectNullRows)
 
     print("\tDeleting fields")
     # Delete repetitive/empty fields
-    arcpy.management.DeleteField(PWQMN_Data, drop_field=["Conservation_Authority", "Watershed", "Active", "Unnamed__6", "Unnamed__7", "Result"])[0]
+    arcpy.management.DeleteField(PWQMN_Data, drop_field=["Conservation_Authority", "Watershed", "Active", "COL_G", "COL_H", "Photo", "Result"])[0]
 
 # Add all feature classes and tables to the map display
 def GDBToMap():
@@ -309,7 +316,6 @@ def AGOLUpload():
     # https://pro.arcgis.com/en/pro-app/latest/tool-reference/server/stage-service.htm
 
     # Set output file names
-
     sddraft_filename = service_name + ".sddraft"
     sddraft_output_filename = os.path.join(outdir, sddraft_filename)
     sd_filename = service_name + ".sd"
@@ -323,8 +329,6 @@ def AGOLUpload():
         os.remove(sd_output_filename)
 
     # Reference layers to publish
-    # aprx = arcpy.mp.ArcGISProject(aprx_path)
-    # m = aprx.listMaps()[0]      # Specify the name of the map if necessary
     lyr_list = []               # List layers and tables
     lyrs = m.listLayers()       # List layers
     tables = m.listTables()     # List tables
@@ -387,6 +391,3 @@ if __name__ == '__main__':
         PWQMNModel()
         GDBToMap()
         AGOLUpload()
-
-print("Done")
-
